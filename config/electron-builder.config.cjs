@@ -103,6 +103,11 @@ const devChannelRepo = isHourlyChannel
       ? 'orca-adhoc'
       : null
 const appId = 'com.stablyai.orca'
+// Why: local `pnpm build:mac` stamps ORCA_LOCAL_BUILD_VERSION. Endpoint security
+// on some machines intercepts a process named Orca; AgentIDE is local-only and
+// release/hourly/daily/adhoc keep the official name because localBuildVersion is
+// forced undefined on those channels.
+const productName = localBuildVersion ? 'AgentIDE' : 'Orca'
 const featureWallResources = {
   from: 'resources/onboarding/feature-wall',
   to: 'onboarding/feature-wall'
@@ -236,7 +241,7 @@ const ORCA_MAC_TEAM_ID = '6CX3WHS9HZ'
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
   appId,
-  productName: 'Orca',
+  productName,
   protocols: [{ name: 'Orca', schemes: ['orca'] }],
   toolsets: { appimage: '1.0.3' },
   ...(devChannelBuildVersion
