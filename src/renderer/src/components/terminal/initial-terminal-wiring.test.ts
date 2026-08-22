@@ -33,5 +33,8 @@ describe('Terminal auto-create wiring', () => {
     expect(source).toContain(
       'shouldAutoCreateInitialTerminal(renderableTabCount, activeWorktreeHasTerminalState)'
     )
+    expect(source).toContain(
+      'ensureWorktreeHasInitialTerminal(useAppStore.getState(), activeWorktreeId)'
+    )
   })
 })
