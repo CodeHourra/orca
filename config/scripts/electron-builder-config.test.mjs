@@ -14,6 +14,7 @@ const electronBuilderNativeRebuild = require('./electron-builder-native-rebuild.
 const {
   createPackagedRuntimeNodeModuleResources,
   findAsarEntry,
+  isPackagedExternalSpecifier,
   prunePackagedNodePty,
   prunePackagedParcelWatcher,
   prunePackagedSherpaOnnx,
@@ -365,6 +366,11 @@ describe('electron-builder config', () => {
   it('uses Orca native rebuild hook instead of electron-builder default rebuild', () => {
     expect(electronBuilderConfig.beforeBuild).toBe(electronBuilderNativeRebuild)
     expect(electronBuilderConfig.npmRebuild).toBe(true)
+  })
+
+  it('treats node:sqlite as a runtime builtin, not a copied package', () => {
+    expect(isPackagedExternalSpecifier('node:sqlite')).toBe(false)
+    expect(isPackagedExternalSpecifier('zod')).toBe(true)
   })
 
   it('verifies packaged main runtime deps from Windows-style asar entries', async () => {
