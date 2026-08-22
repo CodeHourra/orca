@@ -13,6 +13,7 @@ import {
 import { useAppStore } from '@/store'
 import { isTerminalWorkspaceEmptiedOnPurpose } from '../../../shared/closed-terminal-tab-tombstones'
 import { gateWorktreeAgentActivation } from '@/lib/worktree-agent-activation-gate'
+import { ensureWorktreeHasInitialTerminal } from '@/lib/worktree-initial-terminal-seeding'
 import { createWorkspaceTerminalHostAuthoritySelector } from '@/lib/workspace-terminal-host-authority'
 import { hasStructuredAgentLaunchInWorktree } from '@/lib/structured-agent-session-launch'
 import { isEmptyWorkspaceDefaultSurfacePending } from '@/lib/empty-workspace-default-surface-claims'
@@ -67,7 +68,6 @@ export function useTerminalWatcherEffects(controller: TerminalWatcherController)
     activityTerminalPortals,
     anyMountedWorktreeHasLayout,
     backgroundMountRevision,
-    createTab,
     effectiveParkedTerminalWorktreeIds,
     evictionExemptTerminalTabIds,
     getEffectiveLayoutForWorktree,
@@ -254,6 +254,9 @@ export function useTerminalWatcherEffects(controller: TerminalWatcherController)
         activeWorktreeId
       )
       if (shouldAutoCreateInitialTerminal(renderableTabCount, activeWorktreeHasTerminalState)) {
+        // Switch point: main decides whether the workspace gets its first tab. A layout-owner
+        // build creates the tab in main, which cannot seed an agent startup, so only the
+        // window-owned path below follows Settings → Agents.
         if (
           ORCA_LAYOUT_OWNER_IS_MAIN &&
           createInitialTerminalThroughLayoutOwner(useAppStore.getState, activeWorktreeId, () =>
@@ -262,8 +265,8 @@ export function useTerminalWatcherEffects(controller: TerminalWatcherController)
         ) {
           return
         }
-        // Initial default tabs must not count as user activity and reorder the sidebar; explicit New Tab still does.
-        createTab(activeWorktreeId, undefined, undefined, { pendingActivationSpawn: true })
+        // Why: reuse activation seeding so an empty worktree starts the configured default agent.
+        ensureWorktreeHasInitialTerminal(useAppStore.getState(), activeWorktreeId)
       }
     })
     return () => {

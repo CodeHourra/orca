@@ -28,6 +28,7 @@ import { applyDefaultTerminalTabs } from '@/lib/worktree-default-terminal-tabs'
 import { openDefaultAgentChatInEmptyWorkspace } from '@/lib/empty-workspace-default-agent-chat'
 import { isEmptyWorkspaceDefaultSurfacePending } from '@/lib/empty-workspace-default-surface-claims'
 import { findPendingWorktreeCreationId } from './pending-worktree-creation'
+import { buildEmptyWorktreeDefaultAgentStartup } from '@/lib/worktree-default-agent-startup'
 
 function getSetupRunnerCommandPlatformForLaunch(setup: WorktreeSetupLaunch): 'windows' | 'posix' {
   return getSetupRunnerCommandPlatformForPath(
@@ -271,6 +272,12 @@ export function ensureWorktreeHasInitialTerminal(
     if (defaultChat) {
       return defaultChat.primaryTabId
     }
+  }
+
+  // Why: an empty activation used to seed a bare shell; follow the global default
+  // agent so clicking a worktree with no tabs matches Settings → Agents.
+  if (!sequencedStartup && !setup && !issueCommand) {
+    sequencedStartup = buildEmptyWorktreeDefaultAgentStartup(worktreeId)
   }
 
   // Activation-created PTY spawns must not count as activity and reshuffle Recent.
