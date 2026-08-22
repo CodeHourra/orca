@@ -8,7 +8,7 @@ const {
   rmSync
 } = require('node:fs')
 const { dirname, join, resolve } = require('node:path')
-const { builtinModules, createRequire } = require('node:module')
+const { builtinModules, createRequire, isBuiltin } = require('node:module')
 const { PE_MACHINE, readPeMachine } = require('./scripts/windows-pe-machine.cjs')
 
 const projectDir = resolve(__dirname, '..')
@@ -86,7 +86,10 @@ function isPackagedExternalSpecifier(specifier) {
     !specifier.startsWith('.') &&
     !specifier.startsWith('/') &&
     specifier !== 'electron' &&
-    !NODE_BUILTINS.has(specifier)
+    !NODE_BUILTINS.has(specifier) &&
+    // Why: Node 22 exposes node:sqlite via isBuiltin but omits it from
+    // builtinModules, so a host-list-only check false-fails local packaging.
+    !isBuiltin(specifier)
   )
 }
 
