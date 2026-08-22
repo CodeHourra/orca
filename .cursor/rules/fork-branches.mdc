@@ -1,0 +1,51 @@
+---
+description: 本 fork 的分支操作规范；不要自动提交
+alwaysApply: true
+---
+
+# Fork 分支操作
+
+这是 `stablyai/orca` 的 fork（`origin` = `CodeHourra/orca`，`upstream` = `stablyai/orca`）。本规则只约束分支怎么走。**未经用户明确要求，不要 `git commit`、`git commit --amend`、`git push`。**
+
+## 长期分支
+
+| 分支 | 角色 |
+|---|---|
+| `main` | 上游镜像。只快进，永不手改、永不提交自定义 |
+| `fork` | 日常开发、本地 `pnpm build:mac`。自定义只叠在这里 |
+
+不要再拆 `rebrand` / `features` 等长期 topic 分支。
+
+## 日常
+
+- 始终在 `fork` 上改代码。
+- 发现当前在 `main`：先 `git switch fork`，再动手。
+- 不要把未提交改动直接丢到 `main`。
+
+## 同步上游
+
+```bash
+git fetch upstream
+git switch main
+git merge --ff-only upstream/main
+git switch fork
+git rebase main
+```
+
+只有用户明确要求推送时才 `git push origin main` 和 `git push --force-with-lease origin fork`。`main` 禁止 force push。
+
+## 给上游提 PR
+
+从干净的 `main` 另开短分支，不要从 `fork` 开：
+
+```bash
+git switch -c feat/<topic> main
+```
+
+只带可回上游的功能。下面这些永远留在 `fork`，禁止进入上游 PR：
+
+- 本地包改名 `AgentIDE` / `productName` overlay
+- Node 22 `isBuiltin` / `node:sqlite` 打包修复
+- `.cursor/rules/` 和 `.cursor/skills/` 里的 fork 规范 / 构建 skill
+
+合入后把 `fork` rebase 到新的 `main`；已合入的功能 commit 变空则丢掉。
