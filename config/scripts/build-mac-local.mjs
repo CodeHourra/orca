@@ -30,7 +30,7 @@ export function getLocalBuildIdentity() {
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename)) {
   const identity = getLocalBuildIdentity()
-  console.log(`[build:mac] local update version ${identity.version}`)
+  console.log(`[build:mac] local update version ${identity.version} (productName=AgentIDE)`)
   execFileSync(
     process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm',
     ['exec', 'electron-builder', '--config', 'config/electron-builder.config.cjs', '--mac'],
