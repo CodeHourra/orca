@@ -44,6 +44,20 @@ const withDailyEnv = (assert) => withEnv({ ORCA_MAC_DAILY: '1' }, assert)
 const withAdhocEnv = (assert) => withEnv({ ORCA_MAC_ADHOC: '1' }, assert)
 
 describe('electron-builder mac channel config', () => {
+  it('names only local packaged builds AgentIDE', () => {
+    expect(electronBuilderConfig.productName).toBe('Orca')
+    withEnv({ ORCA_LOCAL_BUILD_VERSION: '1.4.178-rc.2-local.1.deadbeefcaf' }, (config) => {
+      expect(config.productName).toBe('AgentIDE')
+      expect(config.appId).toBe('com.stablyai.orca')
+    })
+    withEnv(
+      { ORCA_MAC_HOURLY: '1', ORCA_LOCAL_BUILD_VERSION: '1.4.178-rc.2-local.1.deadbeefcaf' },
+      (config) => {
+        expect(config.productName).toBe('Orca')
+      }
+    )
+  })
+
   // Why: Squirrel.Mac swaps the .app in place only when the replacement carries the
   // same bundle id and a valid Developer ID signature. A hourly built on the local
   // (com.stablyai.orca.local, ad-hoc) identity would be un-installable over a real
