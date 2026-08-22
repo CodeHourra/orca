@@ -30,6 +30,11 @@ const windowsAddonsInstalled = existsSync(
 )
 
 describe('packaged runtime resources', () => {
+  it('treats node:sqlite as a runtime builtin, not a copied package', () => {
+    expect(isPackagedExternalSpecifier('node:sqlite')).toBe(false)
+    expect(isPackagedExternalSpecifier('zod')).toBe(true)
+  })
+
   it('verifies packaged main runtime deps from Windows-style asar entries', async () => {
     const resourcesDir = await mkdtemp(join(tmpdir(), 'orca-runtime-deps-'))
     try {
