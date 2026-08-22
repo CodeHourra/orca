@@ -10,6 +10,7 @@ import {
 } from './terminal-pane/terminal-parked-tab-watchers'
 import { useAppStore } from '@/store'
 import { gateWorktreeAgentActivation } from '@/lib/worktree-agent-activation-gate'
+import { ensureWorktreeHasInitialTerminal } from '@/lib/worktree-initial-terminal-seeding'
 import { resumeSleepingAgentSessionsForWorktree } from '@/lib/resume-sleeping-agent-session'
 import { createWorkspaceTerminalHostAuthoritySelector } from '@/lib/workspace-terminal-host-authority'
 import type { TerminalColdActivationController } from './terminal-cold-activation'
@@ -24,7 +25,6 @@ export function useTerminalWatcherEffects(controller: TerminalColdActivationCont
     activityTerminalPortals,
     anyMountedWorktreeHasLayout,
     backgroundMountRevision,
-    createTab,
     effectiveParkedTerminalWorktreeIds,
     evictionExemptTerminalTabIds,
     getEffectiveLayoutForWorktree,
@@ -163,8 +163,8 @@ export function useTerminalWatcherEffects(controller: TerminalColdActivationCont
       // Why: the activation gate reconciles durable/live agent state first; only an actually empty, never-visited workspace receives a default shell.
       const { renderableTabCount } = reconcileWorktreeTabModel(activeWorktreeId)
       if (shouldAutoCreateInitialTerminal(renderableTabCount, activeWorktreeHasTerminalState)) {
-        // Why: tag this never-visited-worktree tab so its PTY spawn doesn't count as activity and reshuffle the sidebar (explicit New Tab still bumps).
-        createTab(activeWorktreeId, undefined, undefined, { pendingActivationSpawn: true })
+        // Why: reuse activation seeding so an empty worktree starts the configured default agent.
+        ensureWorktreeHasInitialTerminal(useAppStore.getState(), activeWorktreeId)
       }
     })
     return () => {
@@ -174,7 +174,6 @@ export function useTerminalWatcherEffects(controller: TerminalColdActivationCont
     activeWorktreeId,
     activeWorktreeHasTerminalState,
     activeWorktreeHostAuthority,
-    createTab,
     reconcileWorktreeTabModel,
     terminalStartupRestorationReady,
     workspaceSessionReady
