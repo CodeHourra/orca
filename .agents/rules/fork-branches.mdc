@@ -46,6 +46,6 @@ git switch -c feat/<topic> main
 
 - 本地包改名 `AgentIDE` / `productName` overlay
 - Node 22 `isBuiltin` / `node:sqlite` 打包修复
-- `.cursor/rules/` 和 `.cursor/skills/` 里的 fork 规范 / 构建 skill
+- `.agents/rules/` 和 `.agents/skills/` 里的 fork 规范 / 构建与上游评估 skill
 
 合入后把 `fork` rebase 到新的 `main`；已合入的功能 commit 变空则丢掉。
