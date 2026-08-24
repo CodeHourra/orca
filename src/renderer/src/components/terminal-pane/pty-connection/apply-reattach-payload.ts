@@ -19,6 +19,21 @@ import { resolveSshReconnectModelPaint } from './resolve-ssh-reconnect-model-pai
 
 import type { ReattachPayloadContext } from './reattach-payload-context'
 import type { ReattachPayloadSession } from './reattach-payload-session'
+import type { ColdRestoreAgentResumeStartup } from './fresh-spawn-types'
+
+function armWorktreeSleepResumeCommandDelivery(
+  session: ReattachPayloadSession,
+  startup: ColdRestoreAgentResumeStartup | null | undefined
+): void {
+  if (!startup?.command) {
+    return
+  }
+  // Why: createOrAttach(sessionId) drops argv, and the coldRestore paint
+  // path then mode-resets the adopted shell. The resume line must be typed
+  // into that live prompt after restore, not sent as a spawn command.
+  session.pendingStartupCommand = { command: startup.command }
+  session.schedulePendingStartupCommandDelivery()
+}
 
 export function createReattachPayloadHandlers(
   session: ReattachPayloadSession,
@@ -297,9 +312,23 @@ export function createReattachPayloadHandlers(
       if (!isRemoteRuntimePtyId(ctx.ptyId)) {
         window.api.pty.ackColdRestore(ctx.ptyId)
       }
-      if (didPrepareResume && !ctx.coldRestoreStartup) {
+      if (ctx.shouldInjectResumeAfterRestore) {
+        armWorktreeSleepResumeCommandDelivery(session, preparedStartup)
+      } else if (didPrepareResume && !ctx.coldRestoreStartup) {
         session.schedulePendingStartupCommandDelivery()
       }
+    }
+    if (
+      ctx.shouldInjectResumeAfterRestore &&
+      !ctx.connectResult?.snapshot &&
+      !ctx.connectResult?.replay &&
+      !ctx.connectResult?.coldRestore
+    ) {
+      if (session.applyColdRestoreAgentResumeStartup(ctx.coldRestoreStartup)) {
+        session.showSessionRestoredBanner()
+        session.clearSleepingRecordAfterColdRestoreSpawn(ctx.coldRestoreStartup)
+      }
+      armWorktreeSleepResumeCommandDelivery(session, ctx.coldRestoreStartup)
     }
     if (ctx.shouldApplyStructuralPayload) {
       await waitForTerminalReplayWritesParsed(session.pane.terminal)

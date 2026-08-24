@@ -21,7 +21,7 @@ import { bindFreshSpawnFollowReset } from './fresh-spawn-follow-reset'
 
 export function bindDeferredColdRestoreAndSnapshot(session: ConnectPanePtySession): void {
   session.applyColdRestoreAgentResumeStartup = (
-    startup: ColdRestoreAgentResumeStartup | null
+    startup: ColdRestoreAgentResumeStartup | null | undefined
   ): boolean => {
     if (!startup) {
       return false
@@ -36,7 +36,7 @@ export function bindDeferredColdRestoreAndSnapshot(session: ConnectPanePtySessio
     return true
   }
   session.clearSleepingRecordAfterColdRestoreSpawn = (
-    startup: ColdRestoreAgentResumeStartup | null
+    startup: ColdRestoreAgentResumeStartup | null | undefined
   ): void => {
     if (startup && !startup.useLiveEntry && startup.sleepingRecordEntry) {
       session.clearSleepingRecordProviderDuplicates(
