@@ -14732,6 +14732,9 @@
             }
           }
         },
+        "setupContextualCopy": {
+          "copyContext": "Copy context"
+        },
         "useContextualCopySetup": {
           "059bfb0d94": "Context copied"
         },
