@@ -190,7 +190,8 @@ import { createBrowserUuid } from '@/lib/browser-uuid'
 import { makePaneKey, parseLegacyNumericPaneKey } from '../../../../shared/stable-pane-id'
 import {
   getProviderSessionClaimKey,
-  isPassiveCompletedHibernationEvidence
+  isPassiveCompletedHibernationEvidence,
+  shouldInjectWorktreeSleepResumeAfterRestore
 } from '@/lib/sleeping-agent-pane-ownership'
 import { createTerminalCommandLifecycle } from './terminal-command-lifecycle'
 import { createPaneForegroundAgentTracker } from './pane-foreground-agent-tracker'
@@ -5214,7 +5215,7 @@ export function connectPanePty(
       }
     }
     const applyColdRestoreAgentResumeStartup = (
-      startup: ColdRestoreAgentResumeStartup | null
+      startup: ColdRestoreAgentResumeStartup | null | undefined
     ): boolean => {
       if (!startup) {
         return false
@@ -5229,7 +5230,7 @@ export function connectPanePty(
       return true
     }
     const clearSleepingRecordAfterColdRestoreSpawn = (
-      startup: ColdRestoreAgentResumeStartup | null
+      startup: ColdRestoreAgentResumeStartup | null | undefined
     ): void => {
       if (startup && !startup.useLiveEntry && startup.sleepingRecordEntry) {
         clearSleepingRecordProviderDuplicates(useAppStore.getState(), startup.sleepingRecordEntry)
@@ -5329,6 +5330,18 @@ export function connectPanePty(
           pendingStartupCommand = null
         })()
       }, 50)
+    }
+    const armWorktreeSleepResumeCommandDelivery = (
+      startup: ColdRestoreAgentResumeStartup | null | undefined
+    ): void => {
+      if (!startup?.command) {
+        return
+      }
+      // Why: createOrAttach(sessionId) drops argv, and the coldRestore paint
+      // path then mode-resets the adopted shell. The resume line must be typed
+      // into that live prompt after restore, not sent as a spawn command.
+      pendingStartupCommand = { command: startup.command }
+      schedulePendingStartupCommandDelivery()
     }
 
     let freshSpawnFollowResetDisposables: IDisposable[] = []
@@ -8358,26 +8371,19 @@ export function connectPanePty(
       const hasStructuralReplay = Boolean(
         connectResult?.snapshot || connectResult?.replay || connectResult?.coldRestore
       )
-      const resumeComesFromPassiveHibernation = Boolean(
+      const resumeComesFromWorktreeSleepOrPassiveHibernation = Boolean(
         coldRestoreStartup &&
         !coldRestoreStartup.useLiveEntry &&
         coldRestoreStartup.sleepingRecordEntry &&
-        isPassiveCompletedHibernationEvidence(coldRestoreStartup.sleepingRecordEntry.record)
+        shouldInjectWorktreeSleepResumeAfterRestore(coldRestoreStartup.sleepingRecordEntry.record)
       )
-      // Why: reattach drops startup commands; only passive hibernation is authority to retire an empty adopted shell and resume its provider session.
-      if (!hasStructuralReplay && connectResult?.isReattach && resumeComesFromPassiveHibernation) {
-        transport.disconnect()
-        if (staleSessionId) {
-          deps.clearExitedPanePtyLayoutBinding(pane.id, staleSessionId)
-          deps.clearTabPtyId(deps.tabId, staleSessionId)
-        } else {
-          deps.syncPanePtyLayoutBinding(pane.id, null)
-        }
-        startFreshColdRestoreAgentResume(coldRestoreStartup, {
-          forceBlankRestoredViewport: true
-        })
-        return false
-      }
+      // Why: createOrAttach(sessionId) drops argv even when the daemon omits
+      // isReattach (sleep kill → new empty shell + optional coldRestore).
+      // Snapshot/replay mean a live TUI is still there and must not be typed into.
+      const shouldInjectResumeAfterRestore =
+        resumeComesFromWorktreeSleepOrPassiveHibernation &&
+        !connectResult?.snapshot &&
+        !connectResult?.replay
       bindProcessExitState(ptyId)
       setPanePtyFitBinding(ptyId)
       reportPanePtyVisibility(ptyId, deps.isVisibleRef.current)
@@ -8721,8 +8727,17 @@ export function connectPanePty(
           if (!isRemoteRuntimePtyId(ptyId)) {
             window.api.pty.ackColdRestore(ptyId)
           }
-          if (didPrepareResume && !coldRestoreStartup) {
-            schedulePendingStartupCommandDelivery()
+          if (shouldInjectResumeAfterRestore) {
+            armWorktreeSleepResumeCommandDelivery(preparedStartup)
+          }
+        }
+        if (!connectResult?.snapshot && !connectResult?.replay && !connectResult?.coldRestore) {
+          if (shouldInjectResumeAfterRestore) {
+            if (applyColdRestoreAgentResumeStartup(coldRestoreStartup)) {
+              showSessionRestoredBanner()
+              clearSleepingRecordAfterColdRestoreSpawn(coldRestoreStartup)
+            }
+            armWorktreeSleepResumeCommandDelivery(coldRestoreStartup)
           }
         }
         if (hasStructuralReplay || prefetchedParkModelSnapshot) {
@@ -9242,7 +9257,8 @@ export function connectPanePty(
         cols,
         rows,
         sessionId: deferredReattachSessionId,
-        ...(coldRestoreStartup?.command ? { command: coldRestoreStartup.command } : {}),
+        // Why: argv on a restored sessionId is dropped by createOrAttach; the
+        // resume line is typed into the restored shell after coldRestore paint.
         ...(coldRestoreStartup?.env
           ? { env: mergeStartupEnvWithPaneIdentity(coldRestoreStartup.env) }
           : {}),
