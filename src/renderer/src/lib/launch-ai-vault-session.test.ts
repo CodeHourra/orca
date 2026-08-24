@@ -8,6 +8,8 @@ function queuedStartups() {
 }
 const mockSetActiveTabType = vi.fn()
 const mockSetTabBarOrder = vi.fn()
+const mockSetAiVaultTabTitle = vi.fn()
+const mockSetTabCustomTitle = vi.fn()
 const runtimeMocks = vi.hoisted(() => ({
   createWebRuntimeSessionTerminal: vi.fn(),
   runtimeEnvironmentIdOrLocalUnlessTwin: vi.fn<() => string | null>(() => null),
@@ -20,6 +22,8 @@ const mockState = {
   closeEmptyGroup: mockCloseEmptyGroup,
   setActiveTabType: mockSetActiveTabType,
   setTabBarOrder: mockSetTabBarOrder,
+  setAiVaultTabTitle: mockSetAiVaultTabTitle,
+  setTabCustomTitle: mockSetTabCustomTitle,
   tabsByWorktree: {} as Record<string, { id: string }[]>,
   openFiles: [] as { id: string; worktreeId: string }[],
   browserTabsByWorktree: {} as Record<string, { id: string }[]>,
@@ -74,6 +78,41 @@ describe('launchAiVaultSessionInNewTab', () => {
       return tab
     })
     mockCreateEmptySplitGroup.mockReturnValue('group-new')
+  })
+
+  it('seeds aiVaultTitle immediately for Claude/Codex history resumes', () => {
+    launchAiVaultSessionInNewTab({
+      agent: 'codex',
+      worktreeId: 'wt-1',
+      command: "codex resume 'session-1'",
+      title: 'Fix the sleep restore bug',
+      sessionId: 'session-1',
+      providerSession: { key: 'session_id', id: 'session-1' }
+    })
+
+    expect(mockSetAiVaultTabTitle).toHaveBeenCalledWith('tab-1', {
+      agent: 'codex',
+      sessionId: 'session-1',
+      title: 'Fix the sleep restore bug'
+    })
+    expect(mockSetTabCustomTitle).not.toHaveBeenCalled()
+  })
+
+  // Why: gemini/pi/omp have no aiVaultTitle slot, and their OSC title would replace
+  // a plain tab title within seconds of the resume launching.
+  it('pins a custom tab title for non-Claude/Codex history resumes', () => {
+    launchAiVaultSessionInNewTab({
+      agent: 'gemini',
+      worktreeId: 'wt-1',
+      command: 'gemini --resume session-2',
+      title: 'Investigate flaky tests',
+      sessionId: 'session-2'
+    })
+
+    expect(mockSetTabCustomTitle).toHaveBeenCalledWith('tab-1', 'Investigate flaky tests', {
+      recordInteraction: false
+    })
+    expect(mockSetAiVaultTabTitle).not.toHaveBeenCalled()
   })
 
   it('creates runtime-hosted resume terminals through the paired host', async () => {

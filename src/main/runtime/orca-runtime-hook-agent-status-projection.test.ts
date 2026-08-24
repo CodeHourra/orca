@@ -223,16 +223,20 @@ describe('headless hook agent-status projection (#11761)', () => {
     expect(agentStatus).not.toHaveProperty('interactivePrompt')
   })
 
-  // Resume rows are transport placeholders, including pi-flavored rows; never synthesize live status.
-  it.each(['claude', 'pi'])('never fabricates live state from a %s resume row', async (agent) => {
-    const agentStatus = await projectAgentStatus([
-      hookRow({ agentType: agent, providerSessionOnly: true })
-    ])
+  // Resume-identity rows carry transport placeholders, not status. `agentType`
+  // deliberately admits Pi-compatible flavours — `live` must not, either flavour.
+  it.each(['claude', 'pi', 'omp'])(
+    'never fabricates live state from a %s resume row',
+    async (agent) => {
+      const agentStatus = await projectAgentStatus([
+        hookRow({ agentType: agent, providerSessionOnly: true })
+      ])
 
-    expect(agentStatus).toEqual(expect.objectContaining({ state: 'done', prompt: '' }))
-    expect(agentStatus).not.toHaveProperty('toolName')
-    expect(agentStatus).not.toHaveProperty('interactivePrompt')
-  })
+      expect(agentStatus).toEqual(expect.objectContaining({ state: 'done', prompt: '' }))
+      expect(agentStatus).not.toHaveProperty('toolName')
+      expect(agentStatus).not.toHaveProperty('interactivePrompt')
+    }
+  )
 
   // #12346: hydration receipt time proves no current turn; replaying it revives unanswerable question cards.
   it('refuses a hydrated unconfirmed row as live while keeping its resume identity', async () => {
