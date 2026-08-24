@@ -12,6 +12,7 @@ export type ReattachPayloadSession = Pick<
   | 'kittyKeyboardModes'
   | 'pane'
   | 'pendingReattachFit'
+  | 'pendingStartupCommand'
   | 'reattachReplayResetSequence'
   | 'recordRendererOrderedSeq'
   | 'rememberReattachPayloadAgentSignal'

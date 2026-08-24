@@ -14,5 +14,7 @@ export type ReattachPayloadContext = {
   fetchSshMainModelReattachSnapshot: () => Promise<PtyBufferSnapshot | null>
   shouldApplyStructuralPayload: boolean
   coldRestoreStartup: ColdRestoreAgentResumeStartup | null | undefined
+  /** Type `--resume` into the adopted shell after restore, not as createOrAttach argv. */
+  shouldInjectResumeAfterRestore?: boolean
   reattachPayloadApplied: boolean
 }
