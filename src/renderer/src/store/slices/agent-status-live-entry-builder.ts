@@ -18,6 +18,7 @@ import {
   shouldSuppressInheritedTerminalStatus
 } from '../../../../shared/agent-status-identity'
 import { isCommandCodeNewTurnWhileWorking } from '../../../../shared/command-code-turn-boundary'
+import { isPiCompatibleAgentType } from '../../../../shared/pi-agent-kind'
 import type {
   AgentStatusMetadata,
   AgentStatusPayload,
@@ -143,7 +144,9 @@ export function buildAgentStatusLiveEntry(
     (payload.state === 'done' ? existing?.orchestration : undefined)
   const canReuseExistingProviderSession =
     existing?.agentType === identity.agentType &&
-    (existing.state !== 'done' || payload.state === 'done')
+    (existing.state !== 'done' ||
+      payload.state === 'done' ||
+      isPiCompatibleAgentType(identity.agentType))
   const providerSession =
     metadata?.providerSession ??
     (canReuseExistingProviderSession ? existing.providerSession : undefined)
