@@ -14,6 +14,8 @@ export type ReattachPayloadContext = {
   fetchSshMainModelReattachSnapshot: () => Promise<PtyBufferSnapshot | null>
   shouldApplyStructuralPayload: boolean
   coldRestoreStartup: ColdRestoreAgentResumeStartup | null | undefined
+  /** Type `--resume` into the adopted shell after restore, not as createOrAttach argv. */
+  shouldInjectResumeAfterRestore?: boolean
   reattachPayloadApplied: boolean
   /** Capture width of an alt frame the replay omitted as too wide; null when the frame painted. */
   skippedAltFrameCaptureCols: number | null

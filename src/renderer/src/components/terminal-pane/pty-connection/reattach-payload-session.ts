@@ -13,6 +13,7 @@ export type ReattachPayloadSession = Pick<
   | 'markHiddenOutputRestoreNeeded'
   | 'pane'
   | 'pendingReattachFit'
+  | 'pendingStartupCommand'
   | 'reattachReplayResetSequence'
   | 'recordRendererOrderedSeq'
   | 'rememberReattachPayloadAgentSignal'
