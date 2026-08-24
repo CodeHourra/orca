@@ -200,16 +200,19 @@ describe('headless hook agent-status projection (#11761)', () => {
   })
 
   // Resume-identity rows carry transport placeholders, not status. `agentType`
-  // deliberately admits pi's flavour of them — `live` must not, either flavour.
-  it.each(['claude', 'pi'])('never fabricates live state from a %s resume row', async (agent) => {
-    const agentStatus = await projectAgentStatus([
-      hookRow({ agentType: agent, providerSessionOnly: true })
-    ])
+  // deliberately admits Pi-compatible flavours — `live` must not, either flavour.
+  it.each(['claude', 'pi', 'omp'])(
+    'never fabricates live state from a %s resume row',
+    async (agent) => {
+      const agentStatus = await projectAgentStatus([
+        hookRow({ agentType: agent, providerSessionOnly: true })
+      ])
 
-    expect(agentStatus).toEqual(expect.objectContaining({ state: 'done', prompt: '' }))
-    expect(agentStatus).not.toHaveProperty('toolName')
-    expect(agentStatus).not.toHaveProperty('interactivePrompt')
-  })
+      expect(agentStatus).toEqual(expect.objectContaining({ state: 'done', prompt: '' }))
+      expect(agentStatus).not.toHaveProperty('toolName')
+      expect(agentStatus).not.toHaveProperty('interactivePrompt')
+    }
+  )
 
   // #12346: a row hydrated from last-status.json may describe a turn that ended while
   // no receiver was up, so its recent `receivedAt` proves nothing. Publishing it would

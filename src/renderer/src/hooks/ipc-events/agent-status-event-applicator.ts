@@ -1,3 +1,4 @@
+import { isPiCompatibleAgentType } from '../../../../shared/pi-agent-kind'
 import { isWslHookRelayConnectionId } from '../../../../shared/wsl-hook-relay-contract'
 import type { AgentStatusIpcPayload } from '../../../../shared/agent-status-types'
 import {
@@ -141,13 +142,13 @@ export function createAgentStatusEventApplicator(args: {
       return 'dropped'
     }
     if (data.providerSessionOnly) {
-      if (!data.providerSession || data.agentType !== 'pi') {
+      if (!data.providerSession || !isPiCompatibleAgentType(data.agentType)) {
         return 'dropped'
       }
       const providerSessionUpdate: AgentStatusBatchUpdate = {
         kind: 'providerSession',
         paneKey,
-        agent: 'pi',
+        agent: data.agentType,
         providerSession: data.providerSession,
         timing: { updatedAt: data.receivedAt },
         routing: {

@@ -4,9 +4,11 @@ import {
   agentProviderSessionsEqual,
   getAgentResumeArgv,
   isResumableTuiAgent,
+  type AgentProviderSessionMetadata,
   type SleepingAgentLaunchConfig,
   type SleepingAgentSessionRecord
 } from '../../../../shared/agent-session-resume'
+import { buildSleepingAgentLaunchConfig } from '../../../../shared/sleeping-agent-launch-config'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import { findTabForAgentEntry } from './agent-status-pane-key-tab-binding'
 
@@ -17,6 +19,27 @@ export function copyLaunchConfig(config: SleepingAgentLaunchConfig): SleepingAge
     agentEnv: { ...config.agentEnv },
     ...(config.ompResumeFilePath ? { ompResumeFilePath: config.ompResumeFilePath } : {})
   }
+}
+
+function withOmpResumeFilePath(
+  agent: string | undefined,
+  providerSession: AgentProviderSessionMetadata | undefined,
+  launchConfig: SleepingAgentLaunchConfig | undefined
+): SleepingAgentLaunchConfig | undefined {
+  if (agent !== 'omp' || !launchConfig) {
+    return launchConfig
+  }
+  const ompResumeFilePath =
+    launchConfig.ompResumeFilePath?.trim() || providerSession?.transcriptPath?.trim()
+  if (!ompResumeFilePath || launchConfig.ompResumeFilePath === ompResumeFilePath) {
+    return launchConfig
+  }
+  return buildSleepingAgentLaunchConfig({
+    agentCommand: launchConfig.agentCommand,
+    agentArgs: launchConfig.agentArgs,
+    agentEnv: launchConfig.agentEnv,
+    ompResumeFilePath
+  })
 }
 
 export function sleepingRecordFromEntry(args: {
@@ -36,7 +59,8 @@ export function sleepingRecordFromEntry(args: {
   ) {
     return null
   }
-  if (!getAgentResumeArgv(agent, args.entry.providerSession)) {
+  const launchConfig = withOmpResumeFilePath(agent, args.entry.providerSession, args.launchConfig)
+  if (!getAgentResumeArgv(agent, args.entry.providerSession, launchConfig?.ompResumeFilePath)) {
     return null
   }
   const tab = args.tab ?? findTabForAgentEntry(args.state, args.worktreeId, args.entry)
@@ -57,7 +81,7 @@ export function sleepingRecordFromEntry(args: {
     ...(args.entry.lastAssistantMessage
       ? { lastAssistantMessage: args.entry.lastAssistantMessage }
       : {}),
-    ...(args.launchConfig ? { launchConfig: copyLaunchConfig(args.launchConfig) } : {}),
+    ...(launchConfig ? { launchConfig: copyLaunchConfig(launchConfig) } : {}),
     ...(args.entry.interrupted ? { interrupted: true } : {}),
     ...(args.origin ? { origin: args.origin } : {})
   }

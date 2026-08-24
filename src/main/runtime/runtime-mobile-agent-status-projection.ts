@@ -5,6 +5,7 @@ import {
   type AgentStatusIpcPayload
 } from '../../shared/agent-status-types'
 import type { AgentProviderSessionMetadata } from '../../shared/agent-session-resume'
+import { isPiCompatibleAgentType } from '../../shared/pi-agent-kind'
 import { terminalTitleBlocksExplicitAgentStatus } from './runtime-worktree-status-projection'
 import type { HookLiveAgentRow } from './runtime-terminal-contracts'
 import type { RuntimePtyWorktreeRecord } from './runtime-terminal-state-records'
@@ -123,7 +124,7 @@ export function selectRuntimeHookAgentRowForPane(
     if (
       entry.agentType &&
       (entry.providerSessionOnly !== true ||
-        (entry.agentType === 'pi' && entry.providerSession != null)) &&
+        (isPiCompatibleAgentType(entry.agentType) && entry.providerSession != null)) &&
       entry.receivedAt >= freshAfter &&
       (!agent || entry.receivedAt > agent.receivedAt)
     ) {

@@ -6,6 +6,7 @@ import {
   getAgentResumeArgv,
   type AgentProviderSessionMetadata
 } from '../../../shared/agent-session-resume'
+import { isPiCompatibleAgentType } from '../../../shared/pi-agent-kind'
 import { parseLegacyNumericPaneKey, parsePaneKey } from '../../../shared/stable-pane-id'
 import type { AgentStatusIpcPayload, AgentType } from '../../../shared/agent-status-types'
 import type { EnrichedAgentHookEventPayload } from './server-types'
@@ -41,12 +42,16 @@ export function isValidPaneKey(value: unknown): value is string {
   )
 }
 
-// Why: remote metadata-only rows are currently a Pi contract; user-dismissed rows use an internal persisted marker instead.
+// Why: remote metadata-only rows are the Pi-compatible resume contract; user-dismissed rows use an internal persisted marker instead.
 export function isValidPiProviderSessionOnly(
   providerSession: AgentProviderSessionMetadata | undefined,
   agentType: AgentType | undefined
 ): boolean {
-  return Boolean(providerSession && agentType === 'pi' && getAgentResumeArgv('pi', providerSession))
+  return Boolean(
+    providerSession &&
+    isPiCompatibleAgentType(agentType) &&
+    getAgentResumeArgv(agentType, providerSession)
+  )
 }
 
 export function toAgentStatusIpcPayload(

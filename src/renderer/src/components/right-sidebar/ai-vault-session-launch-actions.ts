@@ -115,6 +115,8 @@ export function useAiVaultSessionLaunchActions({
           const launchResult = launchAiVaultSessionInNewTab({
             agent: session.agent,
             worktreeId: targetId.worktreeId,
+            title: session.title,
+            sessionId: session.sessionId,
             ...buildResumeStartup(preparedSession, targetId.worktreeId)
           })
           if (launchResult.tabId === null) {

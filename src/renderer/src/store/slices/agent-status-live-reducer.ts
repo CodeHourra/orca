@@ -65,10 +65,15 @@ export function reduceAgentStatusLiveUpdate(
     delete nextLaunchConfigs[paneKey]
   }
   if (liveRecoveryRecord) {
-    if (!recoveryRecordMatches(existingSleepingRecord, liveRecoveryRecord)) {
+    const nextRecord =
+      existingSleepingRecord?.connectionId !== undefined &&
+      liveRecoveryRecord.connectionId === undefined
+        ? { ...liveRecoveryRecord, connectionId: existingSleepingRecord.connectionId }
+        : liveRecoveryRecord
+    if (!recoveryRecordMatches(existingSleepingRecord, nextRecord)) {
       nextSleepingAgentSessions = {
         ...state.sleepingAgentSessionsByPaneKey,
-        [paneKey]: liveRecoveryRecord
+        [paneKey]: nextRecord
       }
     }
   } else if (existingSleepingRecord) {
