@@ -1694,6 +1694,7 @@ type TerminalCreateOptions = {
   startupAgent?: TuiAgent
   launchPreferences?: AgentLaunchPreferences
   terminalColorQueryReplies?: TerminalOscColorQueryReplyColors
+  terminalKittyKeyboardAdvertised?: boolean
   viewMode?: 'terminal' | 'chat'
   startupCommandDelivery?: WorktreeStartupLaunch['startupCommandDelivery']
   telemetry?: WorktreeStartupLaunch['telemetry']
@@ -2064,6 +2065,7 @@ type RuntimePtyController = {
     persistHostSessionBinding?: boolean
     expectedSourceBinding?: PtyBindingSourceExpectation
     terminalColorQueryReplies?: { foreground?: string; background?: string }
+    terminalKittyKeyboardAdvertised?: boolean
     agentSessionEnsure?: {
       claim: AgentSessionExecutionClaim
       surface: AgentSessionSurfaceBinding
@@ -30540,6 +30542,9 @@ export class OrcaRuntimeService {
             tabId,
             leafId,
             ...(terminalColorQueryReplies ? { terminalColorQueryReplies } : {}),
+            ...(launchOpts.terminalKittyKeyboardAdvertised
+              ? { terminalKittyKeyboardAdvertised: true }
+              : {}),
             ...(launchOpts.agentSessionClaim
               ? {
                   agentSessionEnsure: {
