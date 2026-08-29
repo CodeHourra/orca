@@ -66,6 +66,9 @@ export const TERMINAL_LIFECYCLE_METHODS = [
               ...(params.terminalColorQueryReplies
                 ? { terminalColorQueryReplies: params.terminalColorQueryReplies }
                 : {}),
+              ...(params.terminalKittyKeyboardAdvertised
+                ? { terminalKittyKeyboardAdvertised: true }
+                : {}),
               title: params.title,
               focus,
               rendererBacked: params.rendererBacked === true,

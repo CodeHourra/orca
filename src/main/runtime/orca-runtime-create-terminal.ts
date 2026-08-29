@@ -148,6 +148,9 @@ export class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTerminalCreate
             leafId,
             ...(launchOpts.shellOverride ? { shellOverride: launchOpts.shellOverride } : {}),
             ...(terminalColorQueryReplies ? { terminalColorQueryReplies } : {}),
+            ...(launchOpts.terminalKittyKeyboardAdvertised
+              ? { terminalKittyKeyboardAdvertised: true }
+              : {}),
             ...(launchOpts.agentSessionClaim
               ? {
                   agentSessionEnsure: {
