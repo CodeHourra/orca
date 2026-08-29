@@ -64,6 +64,9 @@ export const TERMINAL_LIFECYCLE_METHODS: RpcAnyMethod[] = [
               ...(params.terminalColorQueryReplies
                 ? { terminalColorQueryReplies: params.terminalColorQueryReplies }
                 : {}),
+              ...(params.terminalKittyKeyboardAdvertised
+                ? { terminalKittyKeyboardAdvertised: true }
+                : {}),
               title: params.title,
               focus,
               rendererBacked: params.rendererBacked === true,

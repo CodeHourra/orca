@@ -147,6 +147,9 @@ export class OrcaRuntimeWithCreateTerminal extends OrcaRuntimeWithTerminalCreate
             tabId,
             leafId,
             ...(terminalColorQueryReplies ? { terminalColorQueryReplies } : {}),
+            ...(launchOpts.terminalKittyKeyboardAdvertised
+              ? { terminalKittyKeyboardAdvertised: true }
+              : {}),
             ...(launchOpts.agentSessionClaim
               ? {
                   agentSessionEnsure: {

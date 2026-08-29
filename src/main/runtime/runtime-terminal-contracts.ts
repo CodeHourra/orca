@@ -31,6 +31,7 @@ export type TerminalCreateOptions = {
   startupAgent?: TuiAgent
   launchPreferences?: AgentLaunchPreferences
   terminalColorQueryReplies?: TerminalOscColorQueryReplyColors
+  terminalKittyKeyboardAdvertised?: boolean
   viewMode?: 'terminal' | 'chat'
   startupCommandDelivery?: WorktreeStartupLaunch['startupCommandDelivery']
   telemetry?: WorktreeStartupLaunch['telemetry']

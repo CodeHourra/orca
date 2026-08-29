@@ -67,6 +67,7 @@ describe('OrcaRuntimeRpcServer', () => {
         worktree: 'id:repo-1::/tmp/worktree-a',
         command: "claude 'work on the issue'",
         terminalColorQueryReplies: { foreground: '#ffffff', background: '#282c34' },
+        terminalKittyKeyboardAdvertised: true,
         tabId: 'laptop-tab',
         leafId,
         presentation: 'background'
@@ -88,7 +89,8 @@ describe('OrcaRuntimeRpcServer', () => {
     ).toBeUndefined()
     expect(spawn).toHaveBeenCalledWith(
       expect.objectContaining({
-        terminalColorQueryReplies: { foreground: '#ffffff', background: '#282c34' }
+        terminalColorQueryReplies: { foreground: '#ffffff', background: '#282c34' },
+        terminalKittyKeyboardAdvertised: true
       })
     )
     runtime.onPtyData('laptop-created-pty', '\x1b]0;Claude working\x07', 456)
