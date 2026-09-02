@@ -10,6 +10,8 @@ export type {
   TuiAgentDetectionRuntime
 } from './tui-agent-config-types'
 
+const PI_TUI_INPUT = { submitRetryDelayMs: 1200, windowsShiftEnterEncoding: 'csi-u' } as const
+
 function resolveTuiAgentConfig(source: TuiAgentConfigSource): TuiAgentConfig {
   return {
     ...source,
@@ -132,14 +134,14 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
     // Pi has no prefill flag; the managed extension seeds env to avoid its long startup paste race.
     draftPromptEnvVar: 'ORCA_PI_PREFILL',
     // Why: Pi decodes CSI-u; Esc+CR submits after tool subprocesses reset live KKP state (#9703).
-    windowsShiftEnterEncoding: 'csi-u'
+    ...PI_TUI_INPUT
   },
   omp: {
     detectCmd: 'omp',
     promptInjectionMode: 'argv',
     draftPromptEnvVar: 'ORCA_OMP_PREFILL',
-    // OMP embeds Pi’s CSI-u reader; preserve newline encoding after live Kitty state resets.
-    windowsShiftEnterEncoding: 'csi-u'
+    // Why: OMP wraps Pi's TUI, so the bytes land in a Pi reader that decodes CSI-u (see pi above).
+    ...PI_TUI_INPUT
   },
   'prime-agent': {
     detectCmd: 'prime-agent',

@@ -17696,6 +17696,11 @@
       "empty": "No users found",
       "useKnownId": "Use known user ID \"{{value0}}\""
     },
+    "terminal": {
+      "agentExplanationFork": {
+        "expandOnThis": "Expand on this"
+      }
+    },
     "native-chat": {
       "install": {
         "checking": "Checking whether {{agent}} is ready on this host…"

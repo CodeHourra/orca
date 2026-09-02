@@ -8,7 +8,14 @@ import {
   type RefObject
 } from 'react'
 import { chatMathSelectionText } from '../sidebar/chat-markdown-math-selection'
-import { Clipboard, Copy, GitFork, Image as ImageIcon, SquareTerminal } from 'lucide-react'
+import {
+  Clipboard,
+  Copy,
+  GitFork,
+  Image as ImageIcon,
+  MessageCircleQuestion,
+  SquareTerminal
+} from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,6 +75,7 @@ type UseNativeChatContextMenuArgs = {
   onHandOff?: () => void
   handOffDisabled?: boolean
   actions: NativeChatContextMenuActions
+  explanationContext?: string
   showTerminalPaneActions?: boolean
   splitShortcutLabels?: { right: string; down: string }
   chatPane?: { tabId: string; worktreeId: string; groupId: string }
@@ -84,6 +92,7 @@ export type NativeChatContextMenuTargetArgs = {
 
 export type NativeChatContextMenuActions = {
   onPaste: () => void
+  onExplainSelection?: (selectedText: string, capturedText?: string) => void
   onSplitRight: () => void
   onSplitDown: () => void
   canEqualizePaneSizes: boolean
@@ -137,6 +146,7 @@ export function useNativeChatContextMenu({
   onHandOff,
   handOffDisabled,
   actions,
+  explanationContext,
   showTerminalPaneActions = true,
   splitShortcutLabels,
   chatPane,
@@ -287,6 +297,14 @@ export function useNativeChatContextMenu({
             </DropdownMenuItem>
           ) : null}
           {hasEditItems && hasSessionItems ? <DropdownMenuSeparator /> : null}
+          {actions.onExplainSelection && state.selectedText.trim() ? (
+            <DropdownMenuItem
+              onSelect={() => actions.onExplainSelection?.(state.selectedText, explanationContext)}
+            >
+              <MessageCircleQuestion />
+              {translate('components.terminal.agentExplanationFork.expandOnThis', 'Expand on this')}
+            </DropdownMenuItem>
+          ) : null}
           {onFind ? <NativeChatFindMenuItem onSelect={() => onFind(state.returnFocusTo)} /> : null}
           {onHandOff ? (
             <AgentSessionContinuationMenuItem disabled={handOffDisabled} onSelect={onHandOff} />

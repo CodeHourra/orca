@@ -2,7 +2,7 @@ import { useNativeChatHandOff } from './use-native-chat-hand-off'
 import { cn } from '@/lib/utils'
 import { NATIVE_CHAT_APPEARANCE_ROOT_CLASS } from './native-chat-appearance-style'
 import { useNativeChatStoreAppearanceStyle } from './use-native-chat-store-appearance-style'
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { agentSessionPromptQuestions } from '../../../../shared/agent-session-question-answer'
 import { structuredAgentSessionPaneKey } from '../../../../shared/structured-agent-session-projection'
 import { useStructuredChatLiveSession } from './use-structured-chat-live-session'
@@ -67,6 +67,7 @@ import {
   NativeChatClaudeSignInContext,
   useNativeChatClaudeSignIn
 } from './native-chat-claude-sign-in'
+import { buildNativeChatForkTranscript } from '@/lib/agent-session-fork-context'
 
 export function NativeChatStructuredSession(
   props: Omit<NativeChatStructuredViewProps, 'mode'>
@@ -168,6 +169,10 @@ export function NativeChatStructuredSession(
     epoch: controller.epoch,
     focusComposer
   })
+  const explanationContext = useMemo(
+    () => buildNativeChatForkTranscript(controller.messages),
+    [controller.messages]
+  )
   const paneCommands = useStructuredNativeChatPaneCommands({
     pane: props,
     handOff,
@@ -178,7 +183,9 @@ export function NativeChatStructuredSession(
     messageListRef: submits.messageListRef,
     fileLinkContext,
     rewind: controller.rewind.surface,
-    onFind: find.open
+    onFind: find.open,
+    onExplainSelection: props.onExplainSelection,
+    explanationContext
   })
   const prompt = controller.prompts[0] ?? null
   // Unknown prompts leave the composer usable; a send starts a turn whose cancel can resolve them.

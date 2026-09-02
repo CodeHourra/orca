@@ -23,6 +23,7 @@ export function useStructuredNativeChatPaneCommands({
   rootRef,
   composerRef,
   questionAnswerInputRef,
+  explanationContext,
   ...menuTargets
 }: {
   pane: Omit<NativeChatStructuredViewProps, 'mode'>
@@ -31,8 +32,9 @@ export function useStructuredNativeChatPaneCommands({
   rootRef: RefObject<HTMLDivElement | null>
   composerRef: RefObject<NativeChatComposerHandle | null>
   questionAnswerInputRef: RefObject<HTMLInputElement | null>
+  explanationContext?: string
 } & NativeChatContextMenuTargetArgs) {
-  const { tabId, groupId, isVisible, sessionId, target } = pane
+  const { tabId, groupId, isVisible, sessionId, target, onExplainSelection } = pane
   const terminalPaneActions = pane.contextMenuActions
   const keybindings = useAppStore((state) => state.keybindings)
   const resolveOrcaSessionId = useMemo(
@@ -56,8 +58,10 @@ export function useStructuredNativeChatPaneCommands({
     actions: {
       ...emptyNativeChatContextMenuActions,
       ...terminalPaneActions,
+      ...(onExplainSelection ? { onExplainSelection } : {}),
       onPaste: pasteClipboardIntoComposer
     },
+    explanationContext,
     enabled: isVisible,
     resolveOrcaSessionId,
     composerRef,
