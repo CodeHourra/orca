@@ -12,6 +12,7 @@ import {
   GitFork,
   Image as ImageIcon,
   Maximize2,
+  MessageCircleQuestion,
   MessageSquarePlus,
   Minimize2,
   PanelBottomClose,
@@ -53,6 +54,7 @@ type UseNativeChatContextMenuArgs = {
   /** Bridge-only escape hatch; structured sessions have no terminal view. */
   onSwitchToTerminal?: () => void
   actions: NativeChatContextMenuActions
+  explanationContext?: string
   showTerminalPaneActions?: boolean
   splitShortcutLabels?: { right: string; down: string }
   workspaceLayout?: {
@@ -66,6 +68,7 @@ type UseNativeChatContextMenuArgs = {
 
 export type NativeChatContextMenuActions = {
   onPaste: () => void
+  onExplainSelection?: (selectedText: string, capturedText?: string) => void
   onSplitRight: () => void
   onSplitDown: () => void
   canEqualizePaneSizes: boolean
@@ -111,6 +114,7 @@ export function useNativeChatContextMenu({
   enabled = true,
   onSwitchToTerminal,
   actions,
+  explanationContext,
   showTerminalPaneActions = true,
   splitShortcutLabels,
   workspaceLayout,
@@ -220,6 +224,14 @@ export function useNativeChatContextMenu({
             {translate('auto.components.nativeChat.contextMenu.copy', 'Copy')}
             <DropdownMenuShortcut>{isMacPlatform() ? '⌘C' : 'Ctrl+C'}</DropdownMenuShortcut>
           </DropdownMenuItem>
+          {actions.onExplainSelection && state.selectedText.trim() ? (
+            <DropdownMenuItem
+              onSelect={() => actions.onExplainSelection?.(state.selectedText, explanationContext)}
+            >
+              <MessageCircleQuestion />
+              {translate('components.terminal.agentExplanationFork.expandOnThis', 'Expand on this')}
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem onSelect={actions.onPaste}>
             <Clipboard />
             {translate('auto.components.terminal.pane.TerminalContextMenu.0a917b591a', 'Paste')}

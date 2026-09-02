@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { Tab, TabGroup } from '../../../../shared/tab-types'
+import type { AgentSessionHandleProvider } from '../../../../shared/agent-session-provider-handle'
 import { useAppStore } from '@/store'
 import {
   structuredAgentSessionOwnerForTab,
@@ -9,10 +10,11 @@ import {
 import { RetainedPaneHost } from '../tab-group/RetainedPaneHost'
 import NativeChatView from './NativeChatView'
 import { isStructuredTab } from './structured-agent-session-tabs'
+import { explainAgentSelection } from '../terminal-pane/terminal-agent-explanation-fork'
 
 type StructuredAgentSessionTab = Tab & {
   contentType: 'agent-session'
-  agentSessionAgent: NonNullable<Tab['agentSessionAgent']>
+  agentSessionAgent: AgentSessionHandleProvider
 }
 
 const EMPTY_UNIFIED_TABS: readonly Tab[] = []
@@ -35,6 +37,22 @@ const StructuredAgentSessionOverlaySlot = memo(function StructuredAgentSessionOv
   // hosts can share.
   const owner = useAppStore((state) => structuredAgentSessionOwnerForTab(state, tab))
   const target = useMemo(() => structuredAgentSessionTargetForHost(owner), [owner])
+  const cwd = useAppStore(
+    (state) => state.getKnownWorktreeById(tab.worktreeId, tab.executionHostId)?.path
+  )
+  const onExplainSelection = useCallback(
+    (selectedText: string, capturedText?: string) =>
+      void explainAgentSelection({
+        agent: tab.agentSessionAgent,
+        worktreeId: tab.worktreeId,
+        selectedText,
+        cwd,
+        capturedText,
+        sourceLabel: tab.id,
+        remote: target?.kind !== 'local'
+      }),
+    [cwd, tab.agentSessionAgent, tab.id, tab.worktreeId, target]
+  )
   if (!target) {
     return null
   }
@@ -54,6 +72,7 @@ const StructuredAgentSessionOverlaySlot = memo(function StructuredAgentSessionOv
         isVisible={isActive}
         isFocusedGroup={isFocusedGroup}
         target={target}
+        onExplainSelection={onExplainSelection}
       />
     </RetainedPaneHost>
   )

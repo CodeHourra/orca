@@ -252,6 +252,8 @@ export function TerminalPaneSurface({
         onClosePane={contextMenu.onClosePane}
         onClearScreen={contextMenu.onClearScreen}
         onResetTerminal={contextMenu.onResetTerminal}
+        canExplainSelection={contextMenu.canExplainSelection}
+        onExplainSelection={() => void contextMenu.onExplainSelection()}
         canContinueAgentSessionInNewSession={contextMenuCanContinueInNewSession}
         onContinueAgentSessionInNewSession={contextMenu.onContinueAgentSessionInNewSession}
         onForkAgentSession={() => void contextMenu.onForkAgentSession()}

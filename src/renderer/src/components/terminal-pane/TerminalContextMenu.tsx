@@ -7,6 +7,7 @@ import {
   GitFork,
   Maximize2,
   MessageSquare,
+  MessageCircleQuestion,
   Minimize2,
   PanelBottomClose,
   PanelsTopLeft,
@@ -55,6 +56,8 @@ type TerminalContextMenuProps = {
   onClosePane: () => void
   onClearScreen: () => void
   onResetTerminal: () => void
+  canExplainSelection: boolean
+  onExplainSelection: () => void
   canContinueAgentSessionInNewSession: boolean
   onContinueAgentSessionInNewSession: () => void
   onForkAgentSession: () => void
@@ -147,6 +150,8 @@ function TerminalContextMenuItems({
   onClosePane,
   onClearScreen,
   onResetTerminal,
+  canExplainSelection,
+  onExplainSelection,
   canContinueAgentSessionInNewSession,
   onContinueAgentSessionInNewSession,
   onForkAgentSession,
@@ -196,6 +201,12 @@ function TerminalContextMenuItems({
         {translate('auto.components.terminal.pane.TerminalContextMenu.f3eeb1de13', 'Copy')}
         <DropdownMenuShortcut>{shortcuts.copy}</DropdownMenuShortcut>
       </DropdownMenuItem>
+      {canExplainSelection ? (
+        <DropdownMenuItem onSelect={onExplainSelection}>
+          <MessageCircleQuestion />
+          {translate('components.terminal.agentExplanationFork.expandOnThis', 'Expand on this')}
+        </DropdownMenuItem>
+      ) : null}
       <DropdownMenuItem onSelect={onSelectAll}>
         <TextSelect />
         {translate('auto.components.terminal.pane.TerminalContextMenu.selectAll', 'Select All')}

@@ -45,6 +45,7 @@ import { useStructuredAgentSessionDeliveryNotices } from './use-structured-agent
 import { useNativeChatHostOutage } from './use-native-chat-host-outage'
 import { NativeChatHostOutageNotice } from './NativeChatHostOutageNotice'
 import { pendingPromptsAllUnanswerableHere } from '../../../../shared/agent-session-approval-subject'
+import { buildNativeChatForkTranscript } from '@/lib/agent-session-fork-context'
 
 type OptionPickerRequest = { id: string; sequence: number }
 
@@ -88,6 +89,10 @@ export function NativeChatStructuredSession(
   const { composerError, reportComposerError } = useNativeChatComposerError()
   const [optionPickerRequest, setOptionPickerRequest] = useState<OptionPickerRequest | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const explanationContext = useMemo(
+    () => buildNativeChatForkTranscript(controller.messages),
+    [controller.messages]
+  )
   const paneCommands = useStructuredNativeChatPaneCommands({
     tabId: props.tabId,
     groupId: props.groupId,
@@ -96,7 +101,9 @@ export function NativeChatStructuredSession(
     composerRef,
     terminalPaneActions: props.contextMenuActions,
     sessionId: props.sessionId,
-    target: props.target
+    target: props.target,
+    onExplainSelection: props.onExplainSelection,
+    explanationContext
   })
   const historyPhase = structuredChatHistoryPhase(provisionalLaunch, controller.status)
   const hostOutage = useNativeChatHostOutage(props.target)

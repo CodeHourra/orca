@@ -1,3 +1,5 @@
+import { isTextBlock, type NativeChatMessage } from '../../../shared/native-chat-types'
+
 const MAX_FORK_CONTEXT_CHARS = 36_000
 const MAX_FORK_CAPTURE_SANITIZE_CHARS = MAX_FORK_CONTEXT_CHARS * 4
 const ESCAPE_CODE = 27
@@ -5,6 +7,14 @@ const BELL_CODE = 7
 
 export type AgentSessionForkPromptInput = {
   capturedText: string
+  sourceLabel?: string | null
+  agentLabel?: string | null
+}
+
+export type AgentExplanationForkPromptInput = {
+  capturedText: string
+  selectedText: string
+  cwd?: string | null
   sourceLabel?: string | null
   agentLabel?: string | null
 }
@@ -136,6 +146,58 @@ export function buildBoundedSessionTranscript(capturedText: string): string | nu
     cleanAgentSessionForkTranscript(tailBoundForkCapture(capturedText))
   )
   return transcript || null
+}
+
+export function buildNativeChatForkTranscript(messages: readonly NativeChatMessage[]): string {
+  return messages
+    .map((message) => {
+      const text = message.blocks
+        .filter(isTextBlock)
+        .map((block) => block.text)
+        .join('\n')
+      return text.trim() ? `${message.role}: ${text}` : ''
+    })
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+export function buildAgentExplanationForkPrompt({
+  capturedText,
+  selectedText,
+  cwd,
+  sourceLabel,
+  agentLabel
+}: AgentExplanationForkPromptInput): string | null {
+  if (!selectedText.trim()) {
+    return null
+  }
+  const transcript = buildBoundedSessionTranscript(capturedText)
+  const fence = transcript ? getMarkdownFenceForTranscript(transcript) : null
+
+  return [
+    'Explain the selected content in the context of the current project.',
+    '',
+    sourceLabel ? `Source: ${sourceLabel}` : null,
+    agentLabel ? `Original agent: ${agentLabel}` : null,
+    cwd?.trim() ? `Working directory: ${cwd.trim()}` : null,
+    '',
+    'Selected content:',
+    '<selection>',
+    selectedText,
+    '</selection>',
+    ...(transcript && fence
+      ? ['', 'Forked session context:', `${fence}text`, transcript, fence]
+      : []),
+    '',
+    'Explain:',
+    '1. What it means.',
+    '2. What role it plays in the surrounding code or output.',
+    '3. Any important assumptions, side effects, or pitfalls.',
+    '',
+    'Be concise. If the available context is insufficient, state exactly what is missing instead of guessing.'
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n')
 }
 
 export function buildAgentSessionForkPrompt({

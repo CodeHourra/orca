@@ -23,7 +23,9 @@ export function useStructuredNativeChatPaneCommands({
   composerRef,
   terminalPaneActions,
   sessionId,
-  target
+  target,
+  onExplainSelection,
+  explanationContext
 }: {
   tabId: string
   groupId?: string
@@ -33,6 +35,8 @@ export function useStructuredNativeChatPaneCommands({
   terminalPaneActions?: Omit<NativeChatContextMenuActions, 'onPaste'>
   sessionId: string
   target: RuntimeClientTarget
+  onExplainSelection?: NativeChatContextMenuActions['onExplainSelection']
+  explanationContext?: string
 }) {
   const keybindings = useAppStore((state) => state.keybindings)
   const resolveOrcaSessionId = useMemo(
@@ -48,8 +52,10 @@ export function useStructuredNativeChatPaneCommands({
     actions: {
       ...emptyNativeChatContextMenuActions,
       ...terminalPaneActions,
+      ...(onExplainSelection ? { onExplainSelection } : {}),
       onPaste: pasteClipboardIntoComposer
     },
+    explanationContext,
     enabled: isVisible,
     resolveOrcaSessionId,
     showTerminalPaneActions: terminalPaneActions !== undefined,

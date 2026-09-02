@@ -17547,6 +17547,11 @@
     }
   },
   "components": {
+    "terminal": {
+      "agentExplanationFork": {
+        "expandOnThis": "展开讲讲"
+      }
+    },
     "native-chat": {
       "reasoning": "推理",
       "contextMenu": {
