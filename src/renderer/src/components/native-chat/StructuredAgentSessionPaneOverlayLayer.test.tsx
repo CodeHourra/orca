@@ -9,6 +9,7 @@ type MockAppState = {
   groupsByWorktree: Record<string, readonly TabGroup[]>
   runtimeEnvironmentId: string | null
   executionHostId: string
+  getKnownWorktreeById: (worktreeId: string) => { path: string } | undefined
   focusGroup: (worktreeId: string, groupId: string) => void
 }
 
@@ -16,7 +17,9 @@ const mocks = vi.hoisted(() => ({
   store: null as null | { setState: (state: Partial<MockAppState>) => void },
   focusGroup: vi.fn(),
   mountsByTabId: new Map<string, number>(),
-  unmountsByTabId: new Map<string, number>()
+  unmountsByTabId: new Map<string, number>(),
+  viewPropsByTabId: new Map<string, Record<string, unknown>>(),
+  explainAgentSelection: vi.fn()
 }))
 
 vi.mock('@/store', async () => {
@@ -26,6 +29,7 @@ vi.mock('@/store', async () => {
     groupsByWorktree: {},
     runtimeEnvironmentId: null,
     executionHostId: 'local',
+    getKnownWorktreeById: () => ({ path: '/repo' }),
     focusGroup: mocks.focusGroup
   }))
   mocks.store = useAppStore
@@ -48,16 +52,23 @@ vi.mock('@/runtime/runtime-rpc-client', () => ({
       : { kind: 'local' }
 }))
 
+vi.mock('../terminal-pane/terminal-agent-explanation-fork', () => ({
+  explainAgentSelection: mocks.explainAgentSelection
+}))
+
 vi.mock('./NativeChatView', async () => {
   const { useEffect } = await import('react')
   return {
     default: function MockNativeChatView({
       tabId,
-      isVisible
+      isVisible,
+      ...props
     }: {
       tabId: string
       isVisible: boolean
+      [key: string]: unknown
     }) {
+      mocks.viewPropsByTabId.set(tabId, props)
       useEffect(() => {
         mocks.mountsByTabId.set(tabId, (mocks.mountsByTabId.get(tabId) ?? 0) + 1)
         return () => {
@@ -87,6 +98,8 @@ describe('StructuredAgentSessionPaneOverlayLayer', () => {
     mocks.focusGroup.mockClear()
     mocks.mountsByTabId.clear()
     mocks.unmountsByTabId.clear()
+    mocks.viewPropsByTabId.clear()
+    mocks.explainAgentSelection.mockClear()
     mocks.store?.setState(createState(FIRST_TAB_ID))
   })
 
@@ -154,19 +167,44 @@ describe('StructuredAgentSessionPaneOverlayLayer', () => {
     expect(slot?.style.zIndex).toBe('')
     expect(slot?.querySelector('[data-native-chat-working="true"]')).not.toBeNull()
   })
+
+  it.each(['codex', 'claude'] as const)(
+    'offers Expand on this for %s structured agent sessions',
+    (agent) => {
+      mocks.store?.setState(createState(FIRST_TAB_ID, agent))
+
+      render(<StructuredAgentSessionPaneOverlayLayer worktreeId={WORKTREE_ID} isWorktreeActive />)
+
+      const actions = mocks.viewPropsByTabId.get(FIRST_TAB_ID)?.contextMenuActions as
+        | { onExplainSelection?: (selectedText: string, capturedText?: string) => void }
+        | undefined
+      expect(actions?.onExplainSelection).toBeTypeOf('function')
+      actions?.onExplainSelection?.('selected output', 'surrounding context')
+      expect(mocks.explainAgentSelection).toHaveBeenCalledWith({
+        agent,
+        worktreeId: WORKTREE_ID,
+        selectedText: 'selected output',
+        cwd: '/repo',
+        capturedText: 'surrounding context',
+        sourceLabel: FIRST_TAB_ID,
+        remote: false
+      })
+    }
+  )
 })
 
-function createState(activeTabId: string): MockAppState {
+function createState(activeTabId: string, agent: 'codex' | 'claude' = 'codex'): MockAppState {
   return {
     unifiedTabsByWorktree: {
       [WORKTREE_ID]: [
-        structuredTab(FIRST_TAB_ID, 'session-1', 0),
-        structuredTab(SECOND_TAB_ID, 'session-2', 1)
+        structuredTab(FIRST_TAB_ID, 'session-1', 0, agent),
+        structuredTab(SECOND_TAB_ID, 'session-2', 1, agent)
       ]
     },
     groupsByWorktree: { [WORKTREE_ID]: [createGroup(activeTabId)] },
     runtimeEnvironmentId: null,
     executionHostId: 'local',
+    getKnownWorktreeById: () => ({ path: '/repo' }),
     focusGroup: mocks.focusGroup
   }
 }
@@ -180,14 +218,19 @@ function createGroup(activeTabId: string): TabGroup {
   }
 }
 
-function structuredTab(id: string, sessionId: string, sortOrder: number): Tab {
+function structuredTab(
+  id: string,
+  sessionId: string,
+  sortOrder: number,
+  agent: 'codex' | 'claude'
+): Tab {
   return {
     id,
     entityId: sessionId,
     groupId: GROUP_ID,
     worktreeId: WORKTREE_ID,
     contentType: 'agent-session',
-    agentSessionAgent: 'codex',
+    agentSessionAgent: agent,
     label: 'Codex Chat',
     customLabel: null,
     color: null,

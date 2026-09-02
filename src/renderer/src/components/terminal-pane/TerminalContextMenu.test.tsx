@@ -74,6 +74,8 @@ function renderMenu(overrides: Record<string, unknown> = {}): string {
     onEqualizePaneSizes: vi.fn(),
     onClosePane: vi.fn(),
     onClearScreen: vi.fn(),
+    canExplainSelection: false,
+    onExplainSelection: vi.fn(),
     canContinueAgentSessionInNewSession: false,
     onContinueAgentSessionInNewSession: vi.fn(),
     onForkAgentSession: vi.fn(),
@@ -122,6 +124,12 @@ describe('TerminalContextMenu', () => {
     expect(onCopyAgentSessionContext).toHaveBeenCalledTimes(1)
     // Why: copying context must not go through the fork dialog path.
     expect(onForkAgentSession).not.toHaveBeenCalled()
+  })
+
+  it('shows Expand on this only when the terminal has a selection', () => {
+    renderMenu({ canExplainSelection: true })
+
+    expect(items.list.some((item) => childrenText(item.children) === 'Expand on this')).toBe(true)
   })
 
   it('shows new-session continuation only for eligible agent panes', () => {

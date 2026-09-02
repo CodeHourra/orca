@@ -35,7 +35,7 @@ function buildForkWorkspaceName(sourceName: string): string {
   return slugifyForWorkspaceName(`${sourceName}-fork`) || 'session-fork'
 }
 
-function resolveTuiAgent(value: string | null | undefined): TuiAgent | null {
+export function resolveTuiAgent(value: string | null | undefined): TuiAgent | null {
   return value && Object.hasOwn(TUI_AGENT_CONFIG, value) ? (value as TuiAgent) : null
 }
 
@@ -86,7 +86,7 @@ async function copyForkContext(prompt: string, pane: ManagedPane): Promise<boole
   }
 }
 
-function getForkAgentLaunchPlatform(args: {
+export function getForkAgentLaunchPlatform(args: {
   repo: { connectionId?: string | null } | null | undefined
   worktreePath?: string | null
   projectRuntime?: ProjectExecutionRuntimeResolution

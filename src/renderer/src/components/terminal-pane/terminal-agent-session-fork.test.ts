@@ -24,6 +24,7 @@ const store = {
   }[],
   repos: [] as { id: string; kind?: 'git' | 'folder'; connectionId?: string | null }[],
   settings: {} as {
+    floatingTerminalEnabled?: boolean
     localWindowsRuntimeDefault?: { kind: 'windows-host' } | { kind: 'wsl'; distro: string }
   },
   worktreesByRepo: {} as Record<
@@ -78,7 +79,10 @@ describe('forkAgentSessionFromPane', () => {
       }
     ]
     store.repos = [{ id: 'repo-1', kind: 'git' }]
-    store.settings = { localWindowsRuntimeDefault: { kind: 'windows-host' } }
+    store.settings = {
+      floatingTerminalEnabled: true,
+      localWindowsRuntimeDefault: { kind: 'windows-host' }
+    }
     store.worktreesByRepo = {
       'repo-1': [{ id: 'wt-1', repoId: 'repo-1', path: 'C:\\repo', projectId: 'repo-1' }]
     }
@@ -88,7 +92,8 @@ describe('forkAgentSessionFromPane', () => {
       id: 'wt-1',
       repoId: 'repo-1',
       displayName: 'auth-feature',
-      branch: 'feature/auth'
+      branch: 'feature/auth',
+      path: '/repo'
     })
     mockCreateWorktree.mockResolvedValue({
       worktree: {
@@ -103,6 +108,7 @@ describe('forkAgentSessionFromPane', () => {
     mockWriteClipboardText.mockResolvedValue(undefined)
     mockMarkTrusted.mockResolvedValue(undefined)
     vi.stubGlobal('window', {
+      dispatchEvent: vi.fn(),
       api: {
         ui: {
           writeTerminalClipboardText: mockWriteClipboardText
@@ -115,6 +121,63 @@ describe('forkAgentSessionFromPane', () => {
         }
       }
     })
+    vi.stubGlobal('document', { querySelector: vi.fn(() => null) })
+  })
+
+  it('opens an explanation fork in the floating workspace with the same agent and cwd', async () => {
+    store.agentStatusByPaneKey = {
+      [`tab-1:${LEAF_ID}`]: { agentType: 'codex' }
+    }
+    const { explainAgentSelectionFromPane } = await import('./terminal-agent-explanation-fork')
+    const selectedText = '  return value ?? fallback  '
+
+    await explainAgentSelectionFromPane({
+      pane: makePane('User: inspect fallback\nAssistant: this branch handles missing values'),
+      tabId: 'tab-1',
+      worktreeId: 'wt-1',
+      groupId: null,
+      cwd: '/repo/src',
+      selectedText
+    })
+
+    expect(mockCreateWorktree).not.toHaveBeenCalled()
+    expect(mockLaunchAgentInNewTab).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent: 'codex',
+        worktreeId: FLOATING_TERMINAL_WORKTREE_ID,
+        initialCwd: '/repo/src',
+        prompt: expect.stringContaining(`<selection>\n${selectedText}\n</selection>`),
+        promptDelivery: 'submit-after-ready',
+        launchSource: 'terminal_context_menu'
+      })
+    )
+    expect(window.dispatchEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'orca-toggle-floating-terminal' })
+    )
+  })
+
+  it('does not launch a local explanation fork for an SSH workspace', async () => {
+    store.repos = [{ id: 'repo-1', kind: 'git', connectionId: 'ssh-1' }]
+    store.agentStatusByPaneKey = {
+      [`tab-1:${LEAF_ID}`]: { agentType: 'codex' }
+    }
+    const pane = makePane('Assistant: remote output')
+    const { explainAgentSelectionFromPane } = await import('./terminal-agent-explanation-fork')
+
+    await explainAgentSelectionFromPane({
+      pane,
+      tabId: 'tab-1',
+      worktreeId: 'wt-1',
+      groupId: null,
+      cwd: '/home/u/repo',
+      selectedText: 'remote output'
+    })
+
+    expect(mockLaunchAgentInNewTab).not.toHaveBeenCalled()
+    expect(mockToast.error).toHaveBeenCalledWith(
+      'Expand on this is not yet available for SSH or WSL sessions.'
+    )
+    expect(pane.terminal.focus).toHaveBeenCalled()
   })
 
   it('creates a top-level workspace fork with a draft agent tab when the source agent is known', async () => {

@@ -22,6 +22,8 @@ import {
 } from './terminal-pane-menu-agent-session-actions'
 import { useTerminalPaneSplitActions } from './use-terminal-pane-split-actions'
 import { useTerminalContextMenuTrigger } from './use-terminal-context-menu-trigger'
+import { explainAgentSelectionFromPane } from './terminal-agent-explanation-fork'
+import type { TuiAgent } from '../../../../shared/tui-agent'
 
 type UseTerminalPaneContextMenuDeps = {
   managerRef: React.RefObject<PaneManager | null>
@@ -63,6 +65,12 @@ type TerminalMenuState = {
   onEqualizePaneSizes: () => void
   onClosePane: () => void
   onClearScreen: () => void
+  canExplainSelection: boolean
+  onExplainSelection: (
+    selectedText?: string,
+    agentOverride?: TuiAgent | null,
+    capturedText?: string
+  ) => Promise<boolean>
   onForkAgentSession: () => Promise<void>
   onContinueAgentSessionInNewSession: () => void
   onCopyAgentSessionContext: () => Promise<void>
@@ -196,6 +204,27 @@ export function useTerminalPaneContextMenu({
     }
   }
 
+  const onExplainSelection = async (
+    selectedText?: string,
+    agentOverride?: TuiAgent | null,
+    capturedText?: string
+  ): Promise<boolean> => {
+    const pane = resolveMenuPane()
+    if (!pane) {
+      return false
+    }
+    return explainAgentSelectionFromPane({
+      pane,
+      tabId,
+      worktreeId,
+      groupId,
+      cwd: paneCwdRef.current.get(pane.id)?.cwd ?? fallbackCwd,
+      selectedText: selectedText ?? pane.terminal.getSelection(),
+      agentOverride,
+      capturedText
+    })
+  }
+
   const onForkAgentSession = async (): Promise<void> =>
     forkAgentSessionFromMenuPane(agentSessionContext, resolveMenuPane())
 
@@ -260,7 +289,8 @@ export function useTerminalPaneContextMenu({
   // do not need pane counts or target identity, so avoid that work on every
   // render across hundreds of mounted terminal tabs.
   const paneCount = open ? (managerRef.current?.getPanes().length ?? 1) : 1
-  const menuPaneId = open ? (resolveMenuPane()?.id ?? null) : null
+  const menuPane = open ? resolveMenuPane() : null
+  const menuPaneId = menuPane?.id ?? null
 
   return {
     open,
@@ -281,6 +311,8 @@ export function useTerminalPaneContextMenu({
     onEqualizePaneSizes,
     onClosePane,
     onClearScreen,
+    canExplainSelection: Boolean(menuPane?.terminal.getSelection().trim()),
+    onExplainSelection,
     onForkAgentSession,
     onContinueAgentSessionInNewSession,
     onCopyAgentSessionContext,

@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  buildAgentExplanationForkPrompt,
   buildAgentSessionForkPrompt,
   buildBoundedSessionTranscript,
+  buildNativeChatForkTranscript,
   cleanAgentSessionForkTranscript
 } from './agent-session-fork-context'
 
@@ -90,5 +92,40 @@ describe('agent session fork context', () => {
 
     expect(prompt).toContain('````text\nAssistant output:')
     expect(prompt).toContain('\n````\n\nAcknowledge')
+  })
+
+  it('preserves the exact selection while bounding the surrounding session context', () => {
+    const selectedText = '  const answer = value ?? fallback\n  return answer  '
+    const prompt = buildAgentExplanationForkPrompt({
+      capturedText: `${'old context\n'.repeat(5_000)}Assistant: inspect the fallback`,
+      selectedText,
+      cwd: '/repo',
+      agentLabel: 'codex'
+    })
+
+    expect(prompt).toContain(`<selection>\n${selectedText}\n</selection>`)
+    expect(prompt).toContain('Working directory: /repo')
+    expect(prompt).toContain('Original agent: codex')
+    expect(prompt).toContain('Earlier terminal output omitted')
+    expect(prompt).toContain('Assistant: inspect the fallback')
+    expect(prompt).not.toContain('wait for my next instruction')
+  })
+
+  it('uses only visible text blocks as Native Chat fork context', () => {
+    const transcript = buildNativeChatForkTranscript([
+      {
+        id: '1',
+        role: 'assistant',
+        blocks: [
+          { type: 'text', text: 'The fallback handles missing values.' },
+          { type: 'tool-call', name: 'read', input: { path: 'secret' } }
+        ],
+        timestamp: null,
+        source: 'transcript'
+      }
+    ])
+
+    expect(transcript).toBe('assistant: The fallback handles missing values.')
+    expect(transcript).not.toContain('secret')
   })
 })
