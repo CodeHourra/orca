@@ -26,6 +26,7 @@ import { NativeChatDeliveryRetry } from './NativeChatDeliveryRetry'
 import { useStructuredAgentSessionHostExecutionPhase } from './StructuredAgentSessionStatusBridge'
 import { structuredAgentLabel } from '@/lib/structured-agent-session-launch-label'
 import { NativeChatThreadGoalBanner } from './NativeChatThreadGoalBanner'
+import { buildNativeChatForkTranscript } from '@/lib/agent-session-fork-context'
 
 export function NativeChatStructuredSession(
   props: Omit<NativeChatStructuredViewProps, 'mode'>
@@ -52,6 +53,11 @@ export function NativeChatStructuredSession(
     // phases, that empty list must not become the draft's turn baseline.
     transcriptLoading: controller.status === 'idle' || controller.status === 'loading'
   })
+  const rootRef = useRef<HTMLDivElement>(null)
+  const explanationContext = useMemo(
+    () => buildNativeChatForkTranscript(controller.messages),
+    [controller.messages]
+  )
   const [composerError, setComposerError] = useState<string | null>(null)
   const [optionPickerRequest, setOptionPickerRequest] = useState<{
     id: string
@@ -61,7 +67,6 @@ export function NativeChatStructuredSession(
     () => structuredAgentSessionPaneKey(props.tabId, props.sessionId),
     [props.sessionId, props.tabId]
   )
-  const rootRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<NativeChatComposerHandle>(null)
   const paneCommands = useStructuredNativeChatPaneCommands({
     tabId: props.tabId,
@@ -69,7 +74,9 @@ export function NativeChatStructuredSession(
     isVisible: props.isVisible,
     rootRef,
     composerRef,
-    terminalPaneActions: props.contextMenuActions
+    terminalPaneActions: props.contextMenuActions,
+    onExplainSelection: props.onExplainSelection,
+    explanationContext
   })
   const session = useMemo<NativeChatLiveSession>(
     () => ({

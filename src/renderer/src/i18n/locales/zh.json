@@ -17308,6 +17308,11 @@
     }
   },
   "components": {
+    "terminal": {
+      "agentExplanationFork": {
+        "expandOnThis": "展开讲讲"
+      }
+    },
     "native-chat": {
       "writeNotice": {
         "notDoneSend": "您的消息未发送。",

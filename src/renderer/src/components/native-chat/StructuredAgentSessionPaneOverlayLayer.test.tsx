@@ -9,6 +9,7 @@ type MockAppState = {
   groupsByWorktree: Record<string, readonly TabGroup[]>
   activeGroupIdByWorktree: Record<string, string>
   runtimeEnvironmentId: string | null
+  getKnownWorktreeById: (worktreeId: string) => { path: string } | undefined
   focusGroup: (worktreeId: string, groupId: string) => void
 }
 
@@ -17,7 +18,9 @@ const mocks = vi.hoisted(() => ({
   focusGroup: vi.fn(),
   mountsByTabId: new Map<string, number>(),
   unmountsByTabId: new Map<string, number>(),
-  groupIdByTabId: new Map<string, string | undefined>()
+  groupIdByTabId: new Map<string, string | undefined>(),
+  viewPropsByTabId: new Map<string, Record<string, unknown>>(),
+  explainAgentSelection: vi.fn()
 }))
 
 vi.mock('@/store', async () => {
@@ -27,6 +30,7 @@ vi.mock('@/store', async () => {
     groupsByWorktree: {},
     activeGroupIdByWorktree: {},
     runtimeEnvironmentId: null,
+    getKnownWorktreeById: () => ({ path: '/repo' }),
     focusGroup: mocks.focusGroup
   }))
   mocks.store = useAppStore
@@ -48,6 +52,10 @@ vi.mock('@/runtime/runtime-rpc-client', () => ({
       : { kind: 'local' }
 }))
 
+vi.mock('../terminal-pane/terminal-agent-explanation-fork', () => ({
+  explainAgentSelection: mocks.explainAgentSelection
+}))
+
 vi.mock('./NativeChatView', async () => {
   const { useEffect } = await import('react')
   return {
@@ -55,14 +63,17 @@ vi.mock('./NativeChatView', async () => {
       tabId,
       groupId,
       isVisible,
-      isFocusedGroup
+      isFocusedGroup,
+      ...props
     }: {
       tabId: string
       groupId?: string
       isVisible: boolean
       isFocusedGroup: boolean
+      [key: string]: unknown
     }) {
       mocks.groupIdByTabId.set(tabId, groupId)
+      mocks.viewPropsByTabId.set(tabId, { groupId, ...props })
       useEffect(() => {
         mocks.mountsByTabId.set(tabId, (mocks.mountsByTabId.get(tabId) ?? 0) + 1)
         return () => {
@@ -95,6 +106,8 @@ describe('StructuredAgentSessionPaneOverlayLayer', () => {
     mocks.mountsByTabId.clear()
     mocks.unmountsByTabId.clear()
     mocks.groupIdByTabId.clear()
+    mocks.viewPropsByTabId.clear()
+    mocks.explainAgentSelection.mockClear()
     mocks.store?.setState(createState(FIRST_TAB_ID))
   })
 
@@ -216,19 +229,43 @@ describe('StructuredAgentSessionPaneOverlayLayer', () => {
     expect(chatSurface(view.container, FIRST_TAB_ID).dataset.chatVisible).toBe('true')
     expect(chatSurface(view.container, FIRST_TAB_ID).dataset.chatFocusedGroup).toBe('false')
   })
+  it.each(['codex', 'claude'] as const)(
+    'offers Expand on this for %s structured agent sessions',
+    (agent) => {
+      mocks.store?.setState(createState(FIRST_TAB_ID, agent))
+
+      render(<StructuredAgentSessionPaneOverlayLayer worktreeId={WORKTREE_ID} isWorktreeActive />)
+
+      const onExplainSelection = mocks.viewPropsByTabId.get(FIRST_TAB_ID)?.onExplainSelection as
+        | ((selectedText: string, capturedText?: string) => void)
+        | undefined
+      expect(onExplainSelection).toBeTypeOf('function')
+      onExplainSelection?.('selected output', 'surrounding context')
+      expect(mocks.explainAgentSelection).toHaveBeenCalledWith({
+        agent,
+        worktreeId: WORKTREE_ID,
+        selectedText: 'selected output',
+        cwd: '/repo',
+        capturedText: 'surrounding context',
+        sourceLabel: FIRST_TAB_ID,
+        remote: false
+      })
+    }
+  )
 })
 
-function createState(activeTabId: string): MockAppState {
+function createState(activeTabId: string, agent: 'codex' | 'claude' = 'codex'): MockAppState {
   return {
     unifiedTabsByWorktree: {
       [WORKTREE_ID]: [
-        structuredTab(FIRST_TAB_ID, 'session-1', 0),
-        structuredTab(SECOND_TAB_ID, 'session-2', 1)
+        structuredTab(FIRST_TAB_ID, 'session-1', 0, agent),
+        structuredTab(SECOND_TAB_ID, 'session-2', 1, agent)
       ]
     },
     groupsByWorktree: { [WORKTREE_ID]: [createGroup(activeTabId)] },
     activeGroupIdByWorktree: { [WORKTREE_ID]: GROUP_ID },
     runtimeEnvironmentId: null,
+    getKnownWorktreeById: () => ({ path: '/repo' }),
     focusGroup: mocks.focusGroup
   }
 }
@@ -242,14 +279,19 @@ function createGroup(activeTabId: string): TabGroup {
   }
 }
 
-function structuredTab(id: string, sessionId: string, sortOrder: number): Tab {
+function structuredTab(
+  id: string,
+  sessionId: string,
+  sortOrder: number,
+  agent: 'codex' | 'claude' = 'codex'
+): Tab {
   return {
     id,
     entityId: sessionId,
     groupId: GROUP_ID,
     worktreeId: WORKTREE_ID,
     contentType: 'agent-session',
-    agentSessionAgent: 'codex',
+    agentSessionAgent: agent,
     label: 'Codex Chat',
     customLabel: null,
     color: null,
