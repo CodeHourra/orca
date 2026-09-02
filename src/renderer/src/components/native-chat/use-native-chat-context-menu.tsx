@@ -11,6 +11,7 @@ import {
   Copy,
   GitFork,
   Maximize2,
+  MessageCircleQuestion,
   MessageSquarePlus,
   Minimize2,
   PanelBottomClose,
@@ -39,10 +40,12 @@ type NativeChatContextMenuState = {
 type UseNativeChatContextMenuArgs = {
   rootRef: RefObject<HTMLElement | null>
   actions: NativeChatContextMenuActions
+  explanationContext?: string
 }
 
 export type NativeChatContextMenuActions = {
-  onPaste: () => void
+  onPaste?: () => void
+  onExplainSelection?: (selectedText: string, capturedText?: string) => void
   onSplitRight: () => void
   onSplitDown: () => void
   canEqualizePaneSizes: boolean
@@ -79,7 +82,11 @@ export const emptyNativeChatContextMenuActions: Omit<NativeChatContextMenuAction
   onClosePane: () => {}
 }
 
-export function useNativeChatContextMenu({ rootRef, actions }: UseNativeChatContextMenuArgs): {
+export function useNativeChatContextMenu({
+  rootRef,
+  actions,
+  explanationContext
+}: UseNativeChatContextMenuArgs): {
   onContextMenuCapture: MouseEventHandler<HTMLElement>
   onSelectionCapture: () => void
   menu: React.JSX.Element
@@ -153,10 +160,20 @@ export function useNativeChatContextMenu({ rootRef, actions }: UseNativeChatCont
             {translate('auto.components.nativeChat.contextMenu.copy', 'Copy')}
             <DropdownMenuShortcut>{isMacPlatform() ? '⌘C' : 'Ctrl+C'}</DropdownMenuShortcut>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={actions.onPaste}>
-            <Clipboard />
-            {translate('auto.components.terminal.pane.TerminalContextMenu.0a917b591a', 'Paste')}
-          </DropdownMenuItem>
+          {actions.onExplainSelection && state.selectedText.trim() ? (
+            <DropdownMenuItem
+              onSelect={() => actions.onExplainSelection?.(state.selectedText, explanationContext)}
+            >
+              <MessageCircleQuestion />
+              {translate('components.terminal.agentExplanationFork.expandOnThis', 'Expand on this')}
+            </DropdownMenuItem>
+          ) : null}
+          {actions.onPaste ? (
+            <DropdownMenuItem onSelect={actions.onPaste}>
+              <Clipboard />
+              {translate('auto.components.terminal.pane.TerminalContextMenu.0a917b591a', 'Paste')}
+            </DropdownMenuItem>
+          ) : null}
           {actions.canContinueAgentSessionInNewSession ? (
             <DropdownMenuItem onSelect={actions.onContinueAgentSessionInNewSession}>
               <MessageSquarePlus />

@@ -16579,6 +16579,11 @@
       "search": "Search users",
       "empty": "No users found"
     },
+    "terminal": {
+      "agentExplanationFork": {
+        "expandOnThis": "Expand on this"
+      }
+    },
     "native-chat": {
       "composer": {
         "imageUnsupported": "Image paste is not supported for this agent.",

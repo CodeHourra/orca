@@ -14568,6 +14568,11 @@
     }
   },
   "components": {
+    "terminal": {
+      "agentExplanationFork": {
+        "expandOnThis": "展开讲讲"
+      }
+    },
     "native-chat": {
       "composer": {
         "imageUnsupported": "此智能体不支持粘贴图片。",

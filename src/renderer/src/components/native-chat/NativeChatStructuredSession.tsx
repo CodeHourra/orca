@@ -1,13 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
-import type {
-  AgentStatusOrchestrationContext,
-  AgentType
-} from '../../../../shared/agent-status-types'
 import { dispatchStructuredAgentSessionComposerCommand } from '../../../../shared/structured-agent-session-composer'
 import { structuredAgentSessionPaneKey } from '../../../../shared/structured-agent-session-projection'
 import type { NativeChatLiveSession } from './use-native-chat-live-session'
-import type { RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import { Button } from '@/components/ui/button'
 import { NativeChatApprovalCard } from './NativeChatApprovalCard'
 import { NativeChatComposer, type NativeChatComposerHandle } from './NativeChatComposer'
@@ -22,21 +17,26 @@ import { useStructuredAgentSession } from './use-structured-agent-session'
 import { translate } from '@/i18n/i18n'
 import { NativeChatOrchestrationPausedNotice } from './NativeChatOrchestrationPausedNotice'
 import { useNativeChatPasteBridge } from './use-native-chat-paste-bridge'
+import type { NativeChatStructuredViewProps } from './native-chat-view-types'
+import {
+  emptyNativeChatContextMenuActions,
+  useNativeChatContextMenu
+} from './use-native-chat-context-menu'
+import { buildNativeChatForkTranscript } from '@/lib/agent-session-fork-context'
 
 function encodeQuestionAnswer(questionId: string, answer: string): string {
   return `${encodeURIComponent(questionId)}:${encodeURIComponent(answer)}`
 }
 
-export function NativeChatStructuredSession(props: {
-  tabId: string
-  sessionId: string
-  target: RuntimeClientTarget
-  agent: AgentType
-  isVisible: boolean
-  allowFileUriLinks: boolean
-  orchestrationDispatchStatus?: AgentStatusOrchestrationContext['dispatchStatus']
-}): React.JSX.Element {
+export function NativeChatStructuredSession(
+  props: Omit<NativeChatStructuredViewProps, 'mode'>
+): React.JSX.Element {
   const controller = useStructuredAgentSession(props)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const explanationContext = useMemo(
+    () => buildNativeChatForkTranscript(controller.messages),
+    [controller.messages]
+  )
   const [composerError, setComposerError] = useState<string | null>(null)
   const [optionPickerRequest, setOptionPickerRequest] = useState<{
     id: string
@@ -46,7 +46,6 @@ export function NativeChatStructuredSession(props: {
     () => structuredAgentSessionPaneKey(props.tabId, props.sessionId),
     [props.sessionId, props.tabId]
   )
-  const rootRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<NativeChatComposerHandle>(null)
   useNativeChatPasteBridge({ rootRef, composerRef })
   const session = useMemo<NativeChatLiveSession>(
@@ -89,6 +88,11 @@ export function NativeChatStructuredSession(props: {
       (entry) => entry.clientMessageId === controller.blockedClientMessageId
     ) ??
     null
+  const contextMenu = useNativeChatContextMenu({
+    rootRef,
+    explanationContext,
+    actions: props.contextMenuActions ?? emptyNativeChatContextMenuActions
+  })
   const structuredTransport = useMemo(
     () => ({
       send: (text: string, attachments: readonly { id: string; path: string }[]): boolean =>
@@ -126,6 +130,9 @@ export function NativeChatStructuredSession(props: {
       data-native-chat-working={controller.isWorking ? 'true' : 'false'}
       tabIndex={-1}
       className="flex h-full min-h-0 w-full flex-col bg-background focus:outline-none"
+      onContextMenuCapture={contextMenu.onContextMenuCapture}
+      onMouseUpCapture={contextMenu.onSelectionCapture}
+      onKeyUpCapture={contextMenu.onSelectionCapture}
     >
       <NativeChatOrchestrationPausedNotice dispatchStatus={props.orchestrationDispatchStatus} />
       <div className="flex min-h-0 flex-1 flex-col">
@@ -242,6 +249,7 @@ export function NativeChatStructuredSession(props: {
           structuredTransport={structuredTransport}
         />
       )}
+      {contextMenu.menu}
     </div>
   )
 }

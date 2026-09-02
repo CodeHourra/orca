@@ -1,7 +1,10 @@
 import { memo, useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { Tab, TabGroup } from '../../../../shared/tab-types'
-import { isAgentSessionHandleProvider } from '../../../../shared/agent-session-provider-handle'
+import {
+  isAgentSessionHandleProvider,
+  type AgentSessionHandleProvider
+} from '../../../../shared/agent-session-provider-handle'
 import { useAppStore } from '@/store'
 import {
   getExecutionHostIdForWorktree,
@@ -10,10 +13,12 @@ import {
 import { getActiveRuntimeTarget, type RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import { tabGroupBodyAnchorName } from '../tab-group/tab-group-body-anchor'
 import NativeChatView from './NativeChatView'
+import { emptyNativeChatContextMenuActions } from './use-native-chat-context-menu'
+import { explainAgentSelection } from '../terminal-pane/terminal-agent-explanation-fork'
 
 type StructuredAgentSessionTab = Tab & {
   contentType: 'agent-session'
-  agentSessionAgent: NonNullable<Tab['agentSessionAgent']>
+  agentSessionAgent: AgentSessionHandleProvider
 }
 
 const EMPTY_UNIFIED_TABS: readonly Tab[] = []
@@ -56,6 +61,25 @@ const StructuredAgentSessionOverlaySlot = memo(function StructuredAgentSessionOv
       onFocusOwningGroup(groupId)
     }
   }, [groupId, onFocusOwningGroup])
+  const cwd = useAppStore(
+    (state) => state.getKnownWorktreeById(tab.worktreeId, tab.executionHostId)?.path
+  )
+  const contextMenuActions = useMemo(
+    () => ({
+      ...emptyNativeChatContextMenuActions,
+      onExplainSelection: (selectedText: string, capturedText?: string) =>
+        void explainAgentSelection({
+          agent: tab.agentSessionAgent,
+          worktreeId: tab.worktreeId,
+          selectedText,
+          cwd,
+          capturedText,
+          sourceLabel: tab.id,
+          remote: target.kind !== 'local'
+        })
+    }),
+    [cwd, tab.agentSessionAgent, tab.id, tab.worktreeId, target.kind]
+  )
 
   return (
     <div
@@ -74,6 +98,7 @@ const StructuredAgentSessionOverlaySlot = memo(function StructuredAgentSessionOv
         isVisible={isActive}
         target={target}
         allowFileUriLinks={allowFileUriLinks}
+        contextMenuActions={contextMenuActions}
       />
     </div>
   )
