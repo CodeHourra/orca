@@ -12,15 +12,23 @@ alwaysApply: true
 | 分支 | 角色 |
 |---|---|
 | `main` | 上游镜像。只快进，永不手改、永不提交自定义 |
-| `fork` | 日常开发、本地 `pnpm build:mac`。自定义只叠在这里 |
+| `fork` | 集成已完成的特性和 fork 专用定制，用于本地 `pnpm build:mac` |
 
 不要再拆 `rebrand` / `features` 等长期 topic 分支。
 
-## 日常
+## 新特性
 
-- 始终在 `fork` 上改代码。
-- 发现当前在 `main`：先 `git switch fork`，再动手。
-- 不要把未提交改动直接丢到 `main`。
+所有新特性从干净的 `main` 创建短期 feature 分支，禁止直接在 `main` 或 `fork` 上开发：
+
+```bash
+git switch main
+git switch -c feat/<topic>
+```
+
+- feature 分支只包含该特性及其测试，不带 fork 专用定制。
+- 开发完成并验证后，合并到 `fork` 用于集成和打包。
+- 特性适合上游时，保留 feature 分支并视情况提 PR；推送和提 PR 仍需用户明确要求。
+- fork 专用的打包、品牌或本地维护改动可直接落在 `fork`。
 
 ## 同步上游
 
