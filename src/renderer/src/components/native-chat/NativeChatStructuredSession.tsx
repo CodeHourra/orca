@@ -23,6 +23,7 @@ import { useNativeChatLaunchDraftSignal } from './use-native-chat-launch-draft-a
 import { NativeChatLaunchRetry } from './NativeChatLaunchRetry'
 import { useNativeChatProvisionalLaunch } from './use-native-chat-provisional-launch'
 import { NativeChatDeliveryRetry } from './NativeChatDeliveryRetry'
+import { buildNativeChatForkTranscript } from '@/lib/agent-session-fork-context'
 
 function encodeQuestionAnswer(questionId: string, answer: string): string {
   return `${encodeURIComponent(questionId)}:${encodeURIComponent(answer)}`
@@ -48,6 +49,11 @@ export function NativeChatStructuredSession(
     // phases, that empty list must not become the draft's turn baseline.
     transcriptLoading: controller.status === 'idle' || controller.status === 'loading'
   })
+  const rootRef = useRef<HTMLDivElement>(null)
+  const explanationContext = useMemo(
+    () => buildNativeChatForkTranscript(controller.messages),
+    [controller.messages]
+  )
   const [composerError, setComposerError] = useState<string | null>(null)
   const [optionPickerRequest, setOptionPickerRequest] = useState<{
     id: string
@@ -57,7 +63,6 @@ export function NativeChatStructuredSession(
     () => structuredAgentSessionPaneKey(props.tabId, props.sessionId),
     [props.sessionId, props.tabId]
   )
-  const rootRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<NativeChatComposerHandle>(null)
   const paneCommands = useStructuredNativeChatPaneCommands({
     tabId: props.tabId,
@@ -65,7 +70,9 @@ export function NativeChatStructuredSession(
     isVisible: props.isVisible,
     rootRef,
     composerRef,
-    terminalPaneActions: props.contextMenuActions
+    terminalPaneActions: props.contextMenuActions,
+    onExplainSelection: props.onExplainSelection,
+    explanationContext
   })
   const session = useMemo<NativeChatLiveSession>(
     () => ({

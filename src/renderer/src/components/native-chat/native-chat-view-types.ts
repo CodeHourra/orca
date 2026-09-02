@@ -40,6 +40,7 @@ export type NativeChatStructuredViewProps = {
   /** This pane's split group holds focus; a revealed sibling column must not take the caret. */
   isFocusedGroup: boolean
   contextMenuActions?: Omit<NativeChatContextMenuActions, 'onPaste'>
+  onExplainSelection?: NativeChatContextMenuActions['onExplainSelection']
 }
 
 export type NativeChatResolvedViewProps = {

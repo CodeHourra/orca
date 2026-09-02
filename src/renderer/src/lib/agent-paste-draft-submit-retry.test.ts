@@ -127,6 +127,29 @@ describe('post-paste submit retry Enter', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
+  it.each(['pi', 'omp'] as const)(
+    'retries the submit Enter for %s after its Pi composer accepts the paste',
+    async (agent) => {
+      const promise = pasteDraftWhenAgentReady({
+        tabId: 'tab-1',
+        content: ISSUE_URL,
+        agent,
+        submit: true,
+        forcePaste: true
+      })
+      await flushMicrotasks()
+      testState.ptyObserver?.(DECSET_BRACKETED_PASTE)
+      await vi.advanceTimersByTimeAsync(RENDER_QUIET_MS)
+      await flushMicrotasks()
+      await vi.advanceTimersByTimeAsync(POST_PASTE_SUBMIT_DELAY_MS)
+      expect(enterWrites()).toHaveLength(1)
+      await vi.advanceTimersByTimeAsync(TUI_AGENT_CONFIG[agent].submitRetryDelayMs ?? 0)
+
+      await expect(promise).resolves.toBe(true)
+      expect(enterWrites()).toHaveLength(2)
+    }
+  )
+
   it('holds the PTY input transaction across the retry Enter', async () => {
     const writes: string[] = []
     testState.sendRuntimePtyInputVerified.mockImplementation(

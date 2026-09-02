@@ -1,16 +1,20 @@
 import { memo, useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import type { Tab, TabGroup } from '../../../../shared/tab-types'
-import { isAgentSessionHandleProvider } from '../../../../shared/agent-session-provider-handle'
+import {
+  isAgentSessionHandleProvider,
+  type AgentSessionHandleProvider
+} from '../../../../shared/agent-session-provider-handle'
 import { useAppStore } from '@/store'
 import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { getActiveRuntimeTarget, type RuntimeClientTarget } from '@/runtime/runtime-rpc-client'
 import { RetainedPaneHost } from '../tab-group/RetainedPaneHost'
 import NativeChatView from './NativeChatView'
+import { explainAgentSelection } from '../terminal-pane/terminal-agent-explanation-fork'
 
 type StructuredAgentSessionTab = Tab & {
   contentType: 'agent-session'
-  agentSessionAgent: NonNullable<Tab['agentSessionAgent']>
+  agentSessionAgent: AgentSessionHandleProvider
 }
 
 const EMPTY_UNIFIED_TABS: readonly Tab[] = []
@@ -31,6 +35,22 @@ const StructuredAgentSessionOverlaySlot = memo(function StructuredAgentSessionOv
   target: RuntimeClientTarget
   onFocusOwningGroup: ((groupId: string) => void) | undefined
 }): React.JSX.Element {
+  const cwd = useAppStore(
+    (state) => state.getKnownWorktreeById(tab.worktreeId, tab.executionHostId)?.path
+  )
+  const onExplainSelection = useCallback(
+    (selectedText: string, capturedText?: string) =>
+      void explainAgentSelection({
+        agent: tab.agentSessionAgent,
+        worktreeId: tab.worktreeId,
+        selectedText,
+        cwd,
+        capturedText,
+        sourceLabel: tab.id,
+        remote: target.kind !== 'local'
+      }),
+    [cwd, tab.agentSessionAgent, tab.id, tab.worktreeId, target.kind]
+  )
   return (
     <RetainedPaneHost
       groupId={groupId}
@@ -47,6 +67,7 @@ const StructuredAgentSessionOverlaySlot = memo(function StructuredAgentSessionOv
         isVisible={isActive}
         isFocusedGroup={isFocusedGroup}
         target={target}
+        onExplainSelection={onExplainSelection}
       />
     </RetainedPaneHost>
   )

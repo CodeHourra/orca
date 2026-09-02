@@ -36,7 +36,7 @@ function buildForkWorkspaceName(sourceName: string): string {
   return slugifyForWorkspaceName(`${sourceName}-fork`) || 'session-fork'
 }
 
-function resolveTuiAgent(value: string | null | undefined): TuiAgent | null {
+export function resolveTuiAgent(value: string | null | undefined): TuiAgent | null {
   return value && Object.hasOwn(TUI_AGENT_CONFIG, value) ? (value as TuiAgent) : null
 }
 

@@ -52,6 +52,8 @@ export type TuiAgentConfig = {
   ctrlEnterEncoding?: 'csi-u'
 }
 
+const PI_TUI_INPUT = { submitRetryDelayMs: 1200, windowsShiftEnterEncoding: 'csi-u' } as const
+
 /** Authoring form: `launchCmd` and `expectedProcess` default to `detectCmd` (true for most agents). */
 type TuiAgentConfigSource = Omit<TuiAgentConfig, 'launchCmd' | 'expectedProcess'> & {
   launchCmd?: string
@@ -140,14 +142,14 @@ const TUI_AGENT_CONFIG_SOURCE: Record<TuiAgent, TuiAgentConfigSource> = {
     // Why: pi has no `--prefill` and paste-after-ready races its long startup; the orca-prefill extension seeds this env var instead.
     draftPromptEnvVar: 'ORCA_PI_PREFILL',
     // Why: Pi decodes CSI-u; Esc+CR submits after tool subprocesses reset live KKP state (#9703).
-    windowsShiftEnterEncoding: 'csi-u'
+    ...PI_TUI_INPUT
   },
   omp: {
     detectCmd: 'omp',
     promptInjectionMode: 'argv',
     draftPromptEnvVar: 'ORCA_OMP_PREFILL',
     // Why: OMP wraps Pi's TUI, so the bytes land in a Pi reader that decodes CSI-u (see pi above).
-    windowsShiftEnterEncoding: 'csi-u'
+    ...PI_TUI_INPUT
   },
   'prime-agent': {
     detectCmd: 'prime-agent',
