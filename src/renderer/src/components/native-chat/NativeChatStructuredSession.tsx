@@ -23,6 +23,7 @@ import {
   useNativeChatContextMenu
 } from './use-native-chat-context-menu'
 import { buildNativeChatForkTranscript } from '@/lib/agent-session-fork-context'
+import { useNativeChatImageRuntimeContext } from './native-chat-image-runtime-context'
 
 function encodeQuestionAnswer(questionId: string, answer: string): string {
   return `${encodeURIComponent(questionId)}:${encodeURIComponent(answer)}`
@@ -79,6 +80,7 @@ export function NativeChatStructuredSession(
   const viewState = selectNativeChatViewState(session)
   const fontScale = useNativeChatFontScale(viewState.kind === 'ready')
   const fileLinkContext = useNativeChatFileLinkContext(props.tabId)
+  const imageRuntimeContext = useNativeChatImageRuntimeContext(props.tabId)
   const fileLinkClick = useNativeChatFileLinkClick(props.allowFileUriLinks ? fileLinkContext : null)
   const prompt = controller.prompts[0] ?? null
   const questionBody = prompt?.body.kind === 'question' ? prompt.body : null
@@ -152,6 +154,7 @@ export function NativeChatStructuredSession(
             showTurnStatus={props.agent === 'codex'}
             onLinkClick={fileLinkClick}
             allowFileUriLinks={fileLinkClick !== undefined}
+            runtimeContext={props.agent === 'codex' ? imageRuntimeContext : undefined}
           />
         )}
       </div>

@@ -11,6 +11,7 @@ import type { PreparedAgentSessionFork } from './terminal-agent-session-fork'
 import type { AgentSessionContinuationRequest } from '@/lib/agent-session-continuation'
 import { pasteTerminalPaneMenuClipboard } from './terminal-pane-menu-paste'
 import {
+  copyTerminalPaneMenuAgentSessionId,
   copyTerminalPaneMenuPaneId,
   copyTerminalPaneMenuSelection,
   copyTerminalPaneMenuTerminalId
@@ -24,6 +25,9 @@ import { useTerminalPaneSplitActions } from './use-terminal-pane-split-actions'
 import { useTerminalContextMenuTrigger } from './use-terminal-context-menu-trigger'
 import { explainAgentSelectionFromPane } from './terminal-agent-explanation-fork'
 import type { TuiAgent } from '../../../../shared/tui-agent'
+import { useAppStore } from '@/store'
+import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { resolvePaneAgentSessionId } from './pane-agent-session-id'
 
 type UseTerminalPaneContextMenuDeps = {
   managerRef: React.RefObject<PaneManager | null>
@@ -59,6 +63,7 @@ type TerminalMenuState = {
   onSelectAll: () => void
   onCopyTerminalId: () => Promise<void>
   onCopyPaneId: () => Promise<void>
+  onCopyAgentSessionId: () => Promise<void>
   onPaste: () => Promise<void>
   onSplitRight: () => void
   onSplitDown: () => void
@@ -110,8 +115,7 @@ export function useTerminalPaneContextMenu({
     }
     const panes = manager.getPanes()
     if (contextPaneIdRef.current !== null) {
-      const clickedPane = panes.find((pane) => pane.id === contextPaneIdRef.current) ?? null
-      return clickedPane
+      return panes.find((pane) => pane.id === contextPaneIdRef.current) ?? null
     }
     return manager.getActivePane() ?? panes[0] ?? null
   }, [managerRef])
@@ -162,8 +166,6 @@ export function useTerminalPaneContextMenu({
     onAgentSessionContinuationReady
   }
 
-  const onCopy = async (): Promise<void> => copyTerminalPaneMenuSelection(resolveMenuPane())
-
   const onSelectAll = (): void => {
     const pane = resolveMenuPane()
     if (pane) {
@@ -172,13 +174,16 @@ export function useTerminalPaneContextMenu({
     }
   }
 
-  const onCopyPaneId = async (): Promise<void> =>
-    copyTerminalPaneMenuPaneId(resolveMenuPane(), tabId)
-
   const onCopyTerminalId = async (): Promise<void> =>
     copyTerminalPaneMenuTerminalId(resolveMenuPane(), tabId)
 
-  const onPaste = async (): Promise<void> => pasteResolvedPane('context-menu')
+  const onCopyAgentSessionId = async (): Promise<void> => {
+    const pane = resolveMenuPane()
+    const sessionId = pane
+      ? resolvePaneAgentSessionId(useAppStore.getState(), makePaneKey(tabId, pane.leafId))
+      : null
+    return copyTerminalPaneMenuAgentSessionId(pane, sessionId)
+  }
 
   const onEqualizePaneSizes = (): void => {
     const pane = resolveMenuPane()
@@ -301,11 +306,12 @@ export function useTerminalPaneContextMenu({
     menuPaneId,
     onContextMenuCapture,
     onPaneTitleContextMenu,
-    onCopy,
+    onCopy: async () => copyTerminalPaneMenuSelection(resolveMenuPane()),
     onSelectAll,
     onCopyTerminalId,
-    onCopyPaneId,
-    onPaste,
+    onCopyPaneId: async () => copyTerminalPaneMenuPaneId(resolveMenuPane(), tabId),
+    onCopyAgentSessionId,
+    onPaste: async () => pasteResolvedPane('context-menu'),
     onSplitRight,
     onSplitDown,
     onEqualizePaneSizes,

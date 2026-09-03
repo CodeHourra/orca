@@ -59,6 +59,8 @@ export type NativeChatContextMenuActions = {
   onSetTitle: () => void
   onCopyTerminalId: () => void
   onCopyPaneId: () => void
+  canCopyAgentSessionId: boolean
+  onCopyAgentSessionId: () => void
   canClosePane: boolean
   onClosePane: () => void
 }
@@ -78,6 +80,8 @@ export const emptyNativeChatContextMenuActions: Omit<NativeChatContextMenuAction
   onSetTitle: () => {},
   onCopyTerminalId: () => {},
   onCopyPaneId: () => {},
+  canCopyAgentSessionId: false,
+  onCopyAgentSessionId: () => {},
   canClosePane: false,
   onClosePane: () => {}
 }
@@ -236,6 +240,15 @@ export function useNativeChatContextMenu({
               'Set Title…'
             )}
           </DropdownMenuItem>
+          {actions.canCopyAgentSessionId ? (
+            <DropdownMenuItem onSelect={actions.onCopyAgentSessionId}>
+              <Copy />
+              {translate(
+                'components.terminalPane.TerminalContextMenu.copySessionId',
+                'Copy Session ID'
+              )}
+            </DropdownMenuItem>
+          ) : null}
           <DropdownMenuItem onSelect={actions.onCopyTerminalId}>
             <Copy />
             {translate(
