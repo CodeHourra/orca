@@ -123,7 +123,11 @@ describe('packaged CLI assets', () => {
     }
   })
 
-  itRunsUnixShell.each(unixLauncherFixtures)(
+  itRunsUnixShell.each(
+    unixLauncherFixtures.filter(
+      (fixture) => fixture.name !== 'macOS' || process.platform === 'darwin'
+    )
+  )(
     'delivers Unix termination signals to the $name executable and releases its listener',
     async (launcherFixture) => {
       for (const signal of unixTerminationSignals) {
@@ -140,6 +144,12 @@ describe('packaged CLI assets', () => {
           await mkdir(dirname(electronPath), { recursive: true })
           await mkdir(dirname(cliPath), { recursive: true })
           await copyFile(launcherFixture.asset, launcherPath)
+          if (launcherFixture.name === 'macOS') {
+            await writeFile(
+              join(appDir, 'Contents', 'Info.plist'),
+              '<plist version="1.0"><dict><key>CFBundleExecutable</key><string>Orca</string></dict></plist>'
+            )
+          }
           await writeFile(cliPath, '', 'utf8')
           await writeFile(
             electronPath,
