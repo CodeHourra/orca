@@ -2,32 +2,32 @@
 
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { NativeChatContextMenuActions } from '../native-chat/use-native-chat-context-menu'
 import type { TerminalPaneController } from './use-terminal-pane-controller'
 
 const mocks = vi.hoisted(() => ({
-  nativeChatViewProps: null as null | { isFocusedGroup: boolean }
+  nativeChatViewProps: null as null | {
+    isFocusedGroup: boolean
+    contextMenuActions?: NativeChatContextMenuActions
+  }
 }))
 
 vi.mock('@/store', () => ({
-  useAppStore: (
-    selector: (state: {
-      agentStatusByPaneKey: Record<string, never>
-      sleepingAgentSessionsByPaneKey: Record<string, never>
-      paneForegroundAgentByPaneKey: Record<string, never>
-    }) => unknown
-  ) =>
-    selector({
-      agentStatusByPaneKey: {},
-      sleepingAgentSessionsByPaneKey: {},
-      paneForegroundAgentByPaneKey: {}
-    })
+  useAppStore: (selector: (state: object) => unknown) => selector({})
 }))
 
 vi.mock('../native-chat/NativeChatView', () => ({
-  default: (props: { isFocusedGroup: boolean }) => {
+  default: (props: {
+    isFocusedGroup: boolean
+    contextMenuActions?: NativeChatContextMenuActions
+  }) => {
     mocks.nativeChatViewProps = props
     return <span data-focused-group={String(props.isFocusedGroup)} />
   }
+}))
+
+vi.mock('./pane-agent-session-id', () => ({
+  resolvePaneAgentSessionId: () => 'provider-session'
 }))
 
 import { TerminalPaneNativeChatPortal } from './TerminalPaneNativeChatPortal'
@@ -67,6 +67,46 @@ describe('TerminalPaneNativeChatPortal', () => {
       portalContainer.remove()
     }
   )
+
+  it.each([null, 'structured-session'])(
+    'preserves explanation and session-copy actions for chat session %s',
+    (structuredSessionId) => {
+      const onExplainSelection = vi.fn()
+      const onCopyAgentSessionId = vi.fn()
+      const runForPane = vi.fn((_paneId: number, action: () => unknown) => action())
+      const controller = {
+        chatPane: {
+          id: 7,
+          leafId: '11111111-1111-4111-8111-111111111111',
+          container: document.createElement('div')
+        },
+        effectiveChatViewMode: true,
+        managedPanes: [{ id: 7 }],
+        expandedPaneId: null,
+        structuredChatAgent: 'codex',
+        structuredChatTarget: { kind: 'local' },
+        structuredSessionId,
+        tabId: 'tab-7',
+        unifiedTabId: 'tab-7',
+        resolveAgentForLeaf: () => 'codex',
+        contextMenu: { runForPane, onExplainSelection, onCopyAgentSessionId }
+      } as unknown as TerminalPaneController
+
+      render(<TerminalPaneNativeChatPortal controller={controller} />)
+
+      const actions = mocks.nativeChatViewProps?.contextMenuActions
+      expect(actions?.canCopyAgentSessionId).toBe(true)
+      actions?.onExplainSelection?.('selected output', 'surrounding context')
+      actions?.onCopyAgentSessionId()
+      expect(onExplainSelection).toHaveBeenCalledWith(
+        'selected output',
+        'codex',
+        'surrounding context'
+      )
+      expect(onCopyAgentSessionId).toHaveBeenCalledOnce()
+      expect(runForPane.mock.calls.map(([paneId]) => paneId)).toEqual([7, 7])
+    }
+  )
 })
 
 function makeController(
@@ -84,9 +124,7 @@ function makeController(
     chatPaneOwnsTabWideLaunchDraft: false,
     chatPanePtyId: null,
     chatPaneResolvedAgent: null,
-    contextMenu: {
-      runForPane: vi.fn()
-    },
+    contextMenu: { runForPane: vi.fn() },
     effectiveChatViewMode: true,
     expandedPaneId: null,
     activePaneIsChatLeaf: overrides.activePaneIsChatLeaf,

@@ -54,8 +54,7 @@ export function TerminalPaneNativeChatPortal({
     onSplitRight: () => contextMenu.runForPane(chatPane.id, contextMenu.onSplitRight),
     onSplitDown: () => contextMenu.runForPane(chatPane.id, contextMenu.onSplitDown),
     canEqualizePaneSizes: managedPanes.length > 1 && expandedPaneId === null,
-    onEqualizePaneSizes: () =>
-      contextMenu.runForPane(chatPane.id, contextMenu.onEqualizePaneSizes),
+    onEqualizePaneSizes: () => contextMenu.runForPane(chatPane.id, contextMenu.onEqualizePaneSizes),
     canExpandPane: managedPanes.length > 1,
     isPaneExpanded: expandedPaneId === chatPane.id,
     onToggleExpand: () => contextMenu.runForPane(chatPane.id, contextMenu.onToggleExpand),
@@ -67,8 +66,7 @@ export function TerminalPaneNativeChatPortal({
     onForkAgentSession: () =>
       void contextMenu.runForPane(chatPane.id, contextMenu.onForkAgentSession),
     onSetTitle: () => contextMenu.runForPane(chatPane.id, contextMenu.onSetTitle),
-    onCopyTerminalId: () =>
-      void contextMenu.runForPane(chatPane.id, contextMenu.onCopyTerminalId),
+    onCopyTerminalId: () => void contextMenu.runForPane(chatPane.id, contextMenu.onCopyTerminalId),
     onCopyPaneId: () => void contextMenu.runForPane(chatPane.id, contextMenu.onCopyPaneId),
     canCopyAgentSessionId: chatPaneSessionId !== null,
     onCopyAgentSessionId: () =>
