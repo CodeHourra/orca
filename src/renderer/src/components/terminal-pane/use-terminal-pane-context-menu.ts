@@ -117,8 +117,7 @@ export function useTerminalPaneContextMenu({
     }
     const panes = manager.getPanes()
     if (contextPaneIdRef.current !== null) {
-      const clickedPane = panes.find((pane) => pane.id === contextPaneIdRef.current) ?? null
-      return clickedPane
+      return panes.find((pane) => pane.id === contextPaneIdRef.current) ?? null
     }
     return manager.getActivePane() ?? panes[0] ?? null
   }, [managerRef])
@@ -169,8 +168,6 @@ export function useTerminalPaneContextMenu({
     onAgentSessionContinuationReady
   }
 
-  const onCopy = async (): Promise<void> => copyTerminalPaneMenuSelection(resolveMenuPane())
-
   const onSelectAll = (): void => {
     const pane = resolveMenuPane()
     if (pane) {
@@ -178,9 +175,6 @@ export function useTerminalPaneContextMenu({
       pane.terminal.focus()
     }
   }
-
-  const onCopyPaneId = async (): Promise<void> =>
-    copyTerminalPaneMenuPaneId(resolveMenuPane(), tabId)
 
   const onCopyTerminalId = async (): Promise<void> =>
     copyTerminalPaneMenuTerminalId(resolveMenuPane(), tabId)
@@ -192,8 +186,6 @@ export function useTerminalPaneContextMenu({
       : null
     return copyTerminalPaneMenuAgentSessionId(pane, sessionId)
   }
-
-  const onPaste = async (): Promise<void> => pasteResolvedPane('context-menu')
 
   const onEqualizePaneSizes = (): void => {
     const pane = resolveMenuPane()
@@ -323,12 +315,12 @@ export function useTerminalPaneContextMenu({
     menuPaneId,
     onContextMenuCapture,
     onPaneTitleContextMenu,
-    onCopy,
+    onCopy: async () => copyTerminalPaneMenuSelection(resolveMenuPane()),
     onSelectAll,
     onCopyTerminalId,
-    onCopyPaneId,
+    onCopyPaneId: async () => copyTerminalPaneMenuPaneId(resolveMenuPane(), tabId),
     onCopyAgentSessionId,
-    onPaste,
+    onPaste: async () => pasteResolvedPane('context-menu'),
     onSplitRight,
     onSplitDown,
     onEqualizePaneSizes,
