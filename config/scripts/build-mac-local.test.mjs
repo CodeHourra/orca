@@ -23,7 +23,9 @@ describe('getLocalMacElectronBuilderArgs', () => {
       'config/electron-builder.config.cjs',
       '--mac',
       'dmg',
-      '--arm64'
+      '--arm64',
+      '--publish',
+      'never'
     ])
     expect(getLocalMacElectronBuilderArgs({ arch: 'x64' })).toEqual([
       'exec',
@@ -32,7 +34,9 @@ describe('getLocalMacElectronBuilderArgs', () => {
       'config/electron-builder.config.cjs',
       '--mac',
       'dmg',
-      '--x64'
+      '--x64',
+      '--publish',
+      'never'
     ])
   })
 
@@ -42,7 +46,9 @@ describe('getLocalMacElectronBuilderArgs', () => {
       'electron-builder',
       '--config',
       'config/electron-builder.config.cjs',
-      '--mac'
+      '--mac',
+      '--publish',
+      'never'
     ])
   })
 })
