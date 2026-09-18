@@ -31,9 +31,19 @@ export function getLocalBuildIdentity() {
 // Why: local verification only needs the host-arch DMG. Dual-arch + zip roughly
 // doubles electron-builder time (native rebuild + sign + package per slice).
 export function getLocalMacElectronBuilderArgs(options = {}) {
+  // Why: electron-builder publishes implicitly when it detects CI, and a local
+  // build has no GH_TOKEN, so the DMG is built and then thrown away on upload.
+  const noPublish = ['--publish', 'never']
   const full = options.full === true
   if (full) {
-    return ['exec', 'electron-builder', '--config', 'config/electron-builder.config.cjs', '--mac']
+    return [
+      'exec',
+      'electron-builder',
+      '--config',
+      'config/electron-builder.config.cjs',
+      '--mac',
+      ...noPublish
+    ]
   }
   const arch = options.arch ?? process.arch
   const archFlag = arch === 'arm64' ? '--arm64' : arch === 'x64' ? '--x64' : null
@@ -47,7 +57,8 @@ export function getLocalMacElectronBuilderArgs(options = {}) {
     'config/electron-builder.config.cjs',
     '--mac',
     'dmg',
-    archFlag
+    archFlag,
+    ...noPublish
   ]
 }
 
@@ -58,9 +69,7 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename
   const skipSign = process.env.ORCA_LOCAL_MAC_SKIP_SIGN === '1'
   const builderArgs = getLocalMacElectronBuilderArgs({
     full,
-    ...(process.env.ORCA_LOCAL_MAC_ARCH
-      ? { arch: process.env.ORCA_LOCAL_MAC_ARCH }
-      : {})
+    ...(process.env.ORCA_LOCAL_MAC_ARCH ? { arch: process.env.ORCA_LOCAL_MAC_ARCH } : {})
   })
   const scope = full
     ? 'dmg+zip x64+arm64'
