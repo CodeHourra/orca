@@ -222,7 +222,9 @@ describe('recordAgentProviderSession', () => {
     expect(getProviderSessionClaimKey(makeRecord('prime-agent', '/tmp/first.jsonl'))).not.toBe(
       getProviderSessionClaimKey(makeRecord('prime-agent', '/tmp/second.jsonl'))
     )
-    expect(getProviderSessionClaimKey(makeRecord('omp', '/tmp/first.jsonl'))).not.toBe(
+    // Why: OMP stays UUID-keyed (omp-resume-transcript-locator.md); a later hook adding the path
+    // must not split one provider session into two claim identities.
+    expect(getProviderSessionClaimKey(makeRecord('omp', '/tmp/first.jsonl'))).toBe(
       getProviderSessionClaimKey(makeRecord('omp', '/tmp/second.jsonl'))
     )
     expect(getProviderSessionClaimKey(makeRecord('claude', '/tmp/first.jsonl'))).toBe(
