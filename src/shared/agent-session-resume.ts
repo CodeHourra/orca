@@ -1,7 +1,6 @@
 import type { AgentHookSource } from './agent-hook-relay'
 import type { AgentStatusState } from './agent-status-types'
 import type { TuiAgent } from './tui-agent'
-import { isPiCompatibleAgentType } from './pi-agent-kind'
 
 export const RESUMABLE_TUI_AGENTS = [
   'claude',
@@ -178,7 +177,7 @@ export function agentProviderSessionsEqual(
   return (
     left.key === right.key &&
     left.id === right.id &&
-    (!isPiCompatibleAgentType(agent) || left.transcriptPath === right.transcriptPath)
+    ((agent !== 'pi' && agent !== 'prime-agent') || left.transcriptPath === right.transcriptPath)
   )
 }
 

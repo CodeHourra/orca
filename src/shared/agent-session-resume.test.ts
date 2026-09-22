@@ -149,7 +149,6 @@ describe('agent session resume metadata', () => {
 
     expect(agentProviderSessionsEqual('pi', first, second)).toBe(false)
     expect(agentProviderSessionsEqual('prime-agent', first, second)).toBe(false)
-    expect(agentProviderSessionsEqual('omp', first, second)).toBe(false)
     expect(agentProviderSessionsEqual('claude', first, second)).toBe(true)
   })
 

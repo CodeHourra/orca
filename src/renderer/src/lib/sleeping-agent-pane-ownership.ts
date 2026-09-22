@@ -7,13 +7,12 @@ import type {
 } from '../../../shared/terminal-tab-types'
 import { parseLegacyNumericPaneKey, parsePaneKey } from '../../../shared/stable-pane-id'
 import { isWebTerminalSurfaceTabId } from '../../../shared/terminal-surface-id'
-import { isPiCompatibleAgentType } from '../../../shared/pi-agent-kind'
 
 type AppStoreState = ReturnType<typeof useAppStore.getState>
 
 export function getProviderSessionClaimKey(record: SleepingAgentSessionRecord): string {
   const base = `${record.worktreeId}\0${record.agent}\0${record.providerSession.key}\0${record.providerSession.id}`
-  return isPiCompatibleAgentType(record.agent)
+  return record.agent === 'pi' || record.agent === 'prime-agent'
     ? `${base}\0${record.providerSession.transcriptPath ?? ''}`
     : base
 }
