@@ -9,6 +9,9 @@ type NativeChatPortalMenuActions = {
   onCopyAgentSessionContext: () => void
   canClearPaneTitle: boolean
   onClearPaneTitle: () => void
+  canCopyAgentSessionId: boolean
+  onCopyAgentSessionId: () => void
+  onExplainSelection?: (selectedText: string, capturedText?: string) => void
 }
 
 const mocks = vi.hoisted(
@@ -112,6 +115,41 @@ describe('TerminalPaneNativeChatPortal', () => {
     expect(mocks.nativeChatViewProps?.isFocusedGroup).toBe(true)
 
     portalContainer.remove()
+  })
+
+  it('preserves explanation and session-copy actions for a chat pane', () => {
+    const onExplainSelection = vi.fn()
+    const onCopyAgentSessionId = vi.fn()
+    const runForPane = vi.fn((_paneId: number, action: () => unknown) => action())
+    const controller = {
+      chatPane: {
+        id: 7,
+        leafId: '11111111-1111-4111-8111-111111111111',
+        container: document.createElement('div'),
+        terminal: { element: document.createElement('div'), focus: vi.fn() }
+      },
+      effectiveChatViewMode: true,
+      managedPanes: [{ id: 7 }],
+      expandedPaneId: null,
+      chatPaneResolvedAgent: 'codex',
+      tabId: 'tab-7',
+      resolveAgentForLeaf: () => 'codex',
+      contextMenu: { runForPane, onExplainSelection, onCopyAgentSessionId }
+    } as unknown as TerminalPaneController
+
+    render(<TerminalPaneNativeChatPortal controller={controller} />)
+
+    const actions = mocks.nativeChatViewProps?.contextMenuActions
+    expect(actions?.canCopyAgentSessionId).toBe(true)
+    actions?.onExplainSelection?.('selected output', 'surrounding context')
+    actions?.onCopyAgentSessionId()
+    expect(onExplainSelection).toHaveBeenCalledWith(
+      'selected output',
+      'codex',
+      'surrounding context'
+    )
+    expect(onCopyAgentSessionId).toHaveBeenCalledOnce()
+    expect(runForPane.mock.calls.map(([paneId]) => paneId)).toEqual([7, 7])
   })
 })
 
