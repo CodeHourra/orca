@@ -118,11 +118,14 @@ describe('agent launch caller routing', () => {
 
       const result = await launch(profile)
 
-      // Why: two profiles are structurally barred rather than merely unconfigured — the floating
+      // Why: three profiles are structurally barred rather than merely unconfigured — the floating
       // sentinel has no workspace a session can live in, and a caller-named cwd is a process shape
-      // only a PTY produces. Both must stay terminal even with the structured default on.
+      // only a PTY produces (both the session-continuation and the terminal explain fork name one).
+      // All must stay terminal even with the structured default on.
       const structurallyBarred =
-        profile.id === 'floating-default-agent' || profile.id === 'session-continuation'
+        profile.id === 'floating-default-agent' ||
+        profile.id === 'session-continuation' ||
+        profile.id === 'terminal-explain-selection'
       expect(result?.surface.kind).toBe(
         structurallyBarred ? 'local-terminal' : 'local-agent-session'
       )

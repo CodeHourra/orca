@@ -33,7 +33,7 @@ describe('agent launch caller profiles', () => {
     const ids = AGENT_LAUNCH_CALLER_PROFILES.map((profile) => profile.id)
 
     expect(new Set(ids).size).toBe(ids.length)
-    expect(ids.length).toBe(12)
+    expect(ids.length).toBe(13)
   })
 
   it.each(AGENT_LAUNCH_CALLER_PROFILES.map((profile) => [profile.id, profile] as const))(
@@ -85,6 +85,10 @@ describe('agent launch caller profiles', () => {
       profile.readsBack.includes('prompt-delivery-result')
     ).map((profile) => profile.id)
 
-    expect(awaiters.sort()).toEqual(['session-continuation', 'source-control-action'])
+    expect(awaiters.sort()).toEqual([
+      'session-continuation',
+      'source-control-action',
+      'terminal-explain-selection'
+    ])
   })
 })

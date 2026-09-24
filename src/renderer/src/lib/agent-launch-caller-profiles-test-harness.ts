@@ -271,6 +271,28 @@ export const AGENT_LAUNCH_CALLER_PROFILES: readonly AgentLaunchCallerProfile[] =
     passesLaunchPlan: false,
     passesOnPromptDelivered: false,
     readsBack: ['surface-tab-id']
+  },
+  {
+    id: 'terminal-explain-selection',
+    caller: 'src/renderer/src/components/terminal-pane/terminal-agent-explanation-fork.ts',
+    sourceMarkers: [
+      'worktreeId: FLOATING_TERMINAL_WORKTREE_ID',
+      "promptDelivery: 'submit-after-ready'",
+      "launchSource: 'terminal_context_menu'",
+      'initialCwd: cwd'
+    ],
+    args: {
+      agent: 'codex',
+      worktreeId: FLOATING_TERMINAL_WORKTREE_ID,
+      initialCwd: '/repo/worktree',
+      prompt: PROMPT,
+      promptDelivery: 'submit-after-ready',
+      launchSource: 'terminal_context_menu'
+    },
+    passesBeforeSurfaceOpen: false,
+    passesLaunchPlan: false,
+    passesOnPromptDelivered: false,
+    readsBack: ['null-only', 'prompt-delivery-result']
   }
 ]
 
