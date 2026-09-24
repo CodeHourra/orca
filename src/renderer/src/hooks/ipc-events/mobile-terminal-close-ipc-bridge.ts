@@ -1,4 +1,6 @@
 import { applyClosedTerminalLeafNotice } from '@/components/terminal-pane/closed-terminal-leaf-notice'
+import { SET_TERMINAL_PANE_TITLE_EVENT } from '@/constants/terminal'
+import type { SetTerminalPaneTitleDetail } from '@/constants/terminal'
 import { closeTerminalTab } from '@/components/terminal/terminal-tab-actions'
 import { detectLanguage } from '@/lib/language-detect'
 import { runSleepWorktree } from '@/components/sidebar/sleep-worktree-flow'
@@ -61,6 +63,16 @@ export function registerMobileAndTerminalCloseIpcBridge(
       }
     })
   )
+
+  // Why: during an in-place renderer reload an older preload can linger; keep this listener additive at that seam.
+  if (window.api.ui.onSetPaneTitle) {
+    unsubs.push(
+      window.api.ui.onSetPaneTitle(({ tabId, leafId, title }) => {
+        const detail: SetTerminalPaneTitleDetail = { tabId, leafId, title }
+        window.dispatchEvent(new CustomEvent(SET_TERMINAL_PANE_TITLE_EVENT, { detail }))
+      })
+    )
+  }
 
   // Why: during an in-place renderer reload an older preload can linger; keep this listener additive at that seam.
   if (window.api.ui.onTerminalTabCloseRequest) {
