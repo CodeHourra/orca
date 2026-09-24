@@ -100,7 +100,11 @@ describe('TerminalPaneNativeChatPortal', () => {
     expect(actions?.canCopyAgentSessionId).toBe(true)
     actions?.onExplainSelection?.('selected output', 'surrounding context')
     actions?.onCopyAgentSessionId()
-    expect(onExplainSelection).toHaveBeenCalledWith('selected output', 'codex', 'surrounding context')
+    expect(onExplainSelection).toHaveBeenCalledWith(
+      'selected output',
+      'codex',
+      'surrounding context'
+    )
     expect(onCopyAgentSessionId).toHaveBeenCalledOnce()
     expect(runForPane.mock.calls.map(([paneId]) => paneId)).toEqual([7, 7])
   })

@@ -38,12 +38,13 @@ export function TerminalPaneNativeChatPortal({
   if (!effectiveChatViewMode || !chatPane?.container) {
     return null
   }
+  const paneAgent = chatPaneResolvedAgent ?? chatPaneLaunchAgent
   const contextMenuActions = {
     onExplainSelection: (selectedText: string, capturedText?: string) =>
       void contextMenu.runForPane(chatPane.id, () =>
         contextMenu.onExplainSelection(
           selectedText,
-          isTuiAgent(structuredChatAgent) ? structuredChatAgent : null,
+          isTuiAgent(paneAgent) ? paneAgent : null,
           capturedText
         )
       ),
