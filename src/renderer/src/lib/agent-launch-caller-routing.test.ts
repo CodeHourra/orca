@@ -146,8 +146,10 @@ describe('agent launch caller routing', () => {
 
       const result = await launch(profile)
 
-      // A caller-named custom cwd requires a PTY, so enabling default chat cannot admit that profile.
-      const structurallyBarred = profile.id === 'session-continuation'
+      // Why: a caller-named cwd is a process shape only a PTY produces, so that profile is
+      // structurally barred rather than merely unconfigured and stays terminal with the default on.
+      const structurallyBarred =
+        profile.id === 'session-continuation' || profile.id === 'terminal-explain-selection'
       expect(result?.surface.kind).toBe(structurallyBarred ? 'local-terminal' : 'host-published')
     }
   )
