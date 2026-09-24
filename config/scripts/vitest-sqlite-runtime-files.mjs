@@ -158,6 +158,7 @@ export const SQLITE_RUNTIME_INCLUDE = [
   'src/main/runtime/host-terminal-close-persistence-durability.test.ts',
   'src/main/runtime/orca-runtime-terminal-close-records.test.ts',
   'src/main/runtime/orca-runtime-terminal-surface-close.test.ts',
+  'src/main/runtime/runtime-terminal-set-pane-title.test.ts',
   'src/main/runtime/orchestration/orchestration-party-location.test.ts',
   'src/main/runtime/orchestration/structured-worker-journal-page.test.ts',
   'src/main/runtime/rpc/methods/agent-launch-caller-selection.test.ts',
