@@ -146,7 +146,8 @@ describe('agent launch caller routing', () => {
 
       // Why: a caller-named cwd is a process shape only a PTY produces, so that profile is
       // structurally barred rather than merely unconfigured and stays terminal with the default on.
-      const structurallyBarred = profile.id === 'session-continuation'
+      const structurallyBarred =
+        profile.id === 'session-continuation' || profile.id === 'terminal-explain-selection'
       expect(result?.surface.kind).toBe(
         structurallyBarred ? 'local-terminal' : 'local-agent-session'
       )

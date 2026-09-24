@@ -173,6 +173,18 @@ export const AGENT_LAUNCH_CALLER_PROFILES: readonly AgentLaunchCallerProfile[] =
       launchSource: 'quick_command',
       quickCommandLabel: 'Review'
     }
+  },
+  {
+    id: 'terminal-explain-selection',
+    caller: 'src/renderer/src/components/terminal-pane/terminal-agent-explanation-fork.ts',
+    args: {
+      agent: 'codex',
+      worktreeId: FLOATING_TERMINAL_WORKTREE_ID,
+      initialCwd: '/repo/worktree',
+      prompt: PROMPT,
+      promptDelivery: 'submit-after-ready',
+      launchSource: 'terminal_context_menu'
+    }
   }
 ]
 
