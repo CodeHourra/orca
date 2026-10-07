@@ -56,7 +56,8 @@ function renderProjection(initialIds: string[]): {
         unifiedTabs: [],
         unifiedTabByVisibleId: new Map(),
         generatedTabTitlesEnabled: false,
-        statusByRelativePath: new Map()
+        statusByRelativePath: new Map(),
+        titleAgentContextByTabId: {}
       }),
     { initialProps: initialIds }
   )

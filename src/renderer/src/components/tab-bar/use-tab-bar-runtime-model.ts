@@ -26,6 +26,10 @@ import {
   type TabBarAgentProjections
 } from './tab-agent-types-by-tab-id'
 import { buildTabAgentLaunchOptions, orderTabLaunchAgents } from './tab-agent-launch-options'
+import {
+  selectTabBarTitleAgentContext,
+  type TabTitleAgentContextByTabId
+} from './tab-title-agent-context'
 import type { TabAgentLaunchOption } from './tab-agent-launch-options'
 import { DEFAULT_DISABLED_TUI_AGENTS } from '../../../../shared/tui-agent-selection'
 import { shouldShowWindowsShellMenu } from './windows-shell-menu-visibility'
@@ -87,6 +91,7 @@ export type TabBarRuntimeModel = {
   nativeChatTranscriptIsLocalReadable: boolean
   managedBrowserCreationEnabled: boolean
   mobileEmulatorCreationEnabled: boolean
+  tabTitleAgentContextByTabId: TabTitleAgentContextByTabId
 } & TabBarAgentProjections
 
 export function useTabBarRuntimeModel({
@@ -255,6 +260,8 @@ export function useTabBarRuntimeModel({
   const nativeChatTranscriptIsLocalReadable = useAppStore((s) =>
     isNativeChatTranscriptLocalReadable(getConnectionIdFromState(s, worktreeId))
   )
+  // Why: same hot maps as the agent projection; the shared selector keeps per-tab identity stable across status churn.
+  const tabTitleAgentContextByTabId = useAppStore(useShallow(selectTabBarTitleAgentContext))
 
   return {
     newTerminalShortcut,
@@ -281,6 +288,7 @@ export function useTabBarRuntimeModel({
     toggleTabViewMode,
     nativeChatEnabled,
     tabAgentTypesByTabId,
+    tabTitleAgentContextByTabId,
     nativeChatTabWideFallbackUnsafeTabsById,
     nativeChatTranscriptIsLocalReadable,
     managedBrowserCreationEnabled,

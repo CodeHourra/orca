@@ -2,6 +2,8 @@ import { memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { shallow } from 'zustand/shallow'
 import type { GitFileStatus } from '../../../../shared/git-status-types'
+import type { TabTitleAgentContext } from '../../../../shared/tab-title-resolution'
+import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import type { OpenFile } from '../../store/slices/editor'
@@ -35,6 +37,8 @@ type TabBarItemRowProps = {
   canDuplicate: boolean
   /** This editor tab's own status, so a git status write re-renders only the tabs it changed. */
   gitStatus: GitFileStatus | null
+  /** The agent hosting this terminal tab, so its title mirrors the agent row. */
+  titleAgentContext: TabTitleAgentContext | undefined
 }
 
 function TabBarItemRow({
@@ -54,7 +58,8 @@ function TabBarItemRow({
   isChatView,
   viewModeTabId,
   canDuplicate,
-  gitStatus
+  gitStatus,
+  titleAgentContext
 }: TabBarItemRowProps): React.JSX.Element {
   // Why: the tabs' labels come from `translate()`, which a skipped render would leave in the old language.
   useTranslation()
@@ -68,7 +73,7 @@ function TabBarItemRow({
     unifiedTabId: item.unifiedTabId,
     visibleTabId: item.id,
     tabType: item.type,
-    label: getTabDragLabel(item, generatedTabTitlesEnabled),
+    label: getTabDragLabel(item, generatedTabTitlesEnabled, titleAgentContext),
     iconPath: item.type === 'editor' ? item.data.filePath : undefined,
     color: item.type === 'terminal' ? (item.data.color ?? null) : null
   }
@@ -99,6 +104,12 @@ function TabBarItemRow({
       <SortableTab
         {...sortableTabProps}
         tab={resolveTerminalItemTab(item.data, generatedTabTitlesEnabled)}
+        displayTitle={resolveTerminalTabTitle(
+          item.data,
+          generatedTabTitlesEnabled,
+          item.data.title,
+          titleAgentContext
+        )}
         canToggleViewMode={canToggleViewMode}
         isChatView={isChatView}
         onToggleViewMode={viewModeTabId ? () => actions.toggleViewMode(viewModeTabId) : undefined}

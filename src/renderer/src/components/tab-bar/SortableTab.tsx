@@ -34,6 +34,8 @@ import { CLOSE_ALL_CONTEXT_MENUS_EVENT } from '@/lib/close-all-context-menus'
 
 type SortableTabProps = {
   tab: TerminalTab
+  /** The label the strip shows; defaults to `tab.title` when no agent context applies. */
+  displayTitle?: string
   unifiedTabId: string
   groupId: string
   tabCount: number
@@ -65,6 +67,7 @@ type SortableTabProps = {
 
 export default function SortableTab({
   tab,
+  displayTitle = tab.title,
   unifiedTabId,
   groupId,
   tabCount,
@@ -117,8 +120,8 @@ export default function SortableTab({
   const tabAgent = useTabAgent(tab)
 
   // Why: with a provider icon shown, strip the agent's own leading glyph so the tab doesn't show two icons for one agent.
-  const displayTitle =
-    tab.customTitle ?? (tabAgent ? stripLeadingAgentTitleDecoration(tab.title) : tab.title)
+  const label =
+    tab.customTitle ?? (tabAgent ? stripLeadingAgentTitleDecoration(displayTitle) : displayTitle)
 
   const { attributes, listeners, setNodeRef } = useSortable({
     id: tab.id,
@@ -174,7 +177,7 @@ export default function SortableTab({
     disabled: isEditing
   })
   const slotProps = useTabStripSlotProps(tab.id, isActive)
-  const tabTitle = tab.customTitle ?? tab.title
+  const tabTitle = tab.customTitle ?? displayTitle
   const tabRoot = (
     <div
       ref={setNodeRef}
@@ -280,18 +283,18 @@ export default function SortableTab({
           spellCheck={false}
         />
       ) : isEditing || menuOpen ? (
-        <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{displayTitle}</span>
+        <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{label}</span>
       ) : (
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{displayTitle}</span>
+            <span className={`${TAB_LABEL_WIDTH_CLASSES} mr-1`}>{label}</span>
           </TooltipTrigger>
           <TooltipContent
             side="bottom"
             sideOffset={6}
             className="max-w-80 whitespace-normal break-words text-left"
           >
-            {displayTitle}
+            {label}
           </TooltipContent>
         </Tooltip>
       )}

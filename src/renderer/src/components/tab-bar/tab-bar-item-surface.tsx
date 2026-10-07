@@ -30,6 +30,7 @@ export type TabBarItemSurfaceRuntime = Pick<
   | 'unifiedTabByVisibleId'
   | 'nativeChatEnabled'
   | 'tabAgentTypesByTabId'
+  | 'tabTitleAgentContextByTabId'
   | 'nativeChatTabWideFallbackUnsafeTabsById'
   | 'nativeChatTranscriptIsLocalReadable'
   | 'managedBrowserCreationEnabled'
@@ -68,6 +69,7 @@ export function renderTabBarItems({
     unifiedTabByVisibleId,
     nativeChatEnabled,
     tabAgentTypesByTabId,
+    tabTitleAgentContextByTabId,
     nativeChatTabWideFallbackUnsafeTabsById,
     nativeChatTranscriptIsLocalReadable,
     managedBrowserCreationEnabled,
@@ -148,6 +150,9 @@ export function renderTabBarItems({
           item.type === 'editor'
             ? resolveEditorTabGitStatus(item.data.relativePath, statusByRelativePath)
             : null
+        }
+        titleAgentContext={
+          item.type === 'terminal' ? tabTitleAgentContextByTabId[item.data.id] : undefined
         }
       />
     )
