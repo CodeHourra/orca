@@ -51,7 +51,8 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
     unifiedTabs: runtime.unifiedTabs,
     unifiedTabByVisibleId: runtime.unifiedTabByVisibleId,
     generatedTabTitlesEnabled: runtime.generatedTabTitlesEnabled,
-    statusByRelativePath: runtime.statusByRelativePath
+    statusByRelativePath: runtime.statusByRelativePath,
+    titleAgentContextByTabId: runtime.tabTitleAgentContextByTabId
   })
   const togglePinned = (item: TabBarItem): void => {
     // pinTab/unpinTab mirror the change to the host for remote-server tabs.

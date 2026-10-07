@@ -2,13 +2,17 @@ import type { BrowserTab as BrowserTabState } from '../../../../shared/browser-w
 import type { GitFileStatus } from '../../../../shared/git-status-types'
 import type { Tab, WorkspaceVisibleTabType } from '../../../../shared/tab-types'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
-import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
+import {
+  resolveTerminalTabTitle,
+  type TabTitleAgentContext
+} from '../../../../shared/tab-title-resolution'
 import type { OpenFile } from '../../store/slices/editor'
 import { getEditorDisplayLabel } from '@/components/editor/editor-labels'
 import { normalizeRelativePath } from '@/lib/path'
 import { getBrowserTabLabel } from './BrowserTab'
 import type { DropIndicator } from './drop-indicator'
 import { reconcileTabOrder } from './reconcile-order'
+import type { TabTitleAgentContextByTabId } from './tab-title-agent-context'
 import { resolveTabIndicatorEdges } from '../tab-group/tab-insertion'
 import type { HoveredTabInsertion } from '../tab-group/useTabDragSplit'
 
@@ -67,9 +71,13 @@ export function resolveEditorTabGitStatus(
   return statusByRelativePath.get(normalizeRelativePath(relativePath)) ?? null
 }
 
-export function getTabDragLabel(item: TabBarItem, generatedTitlesEnabled: boolean): string {
+export function getTabDragLabel(
+  item: TabBarItem,
+  generatedTitlesEnabled: boolean,
+  owner?: TabTitleAgentContext
+): string {
   if (item.type === 'terminal') {
-    return resolveTerminalTabTitle(item.data, generatedTitlesEnabled, item.data.title)
+    return resolveTerminalTabTitle(item.data, generatedTitlesEnabled, item.data.title, owner)
   }
   if (item.type === 'browser') {
     return getBrowserTabLabel(item.data)
@@ -85,14 +93,16 @@ export function getTabLayoutSignature(
   {
     generatedTitlesEnabled,
     isExpanded,
-    status
+    status,
+    owner
   }: {
     generatedTitlesEnabled: boolean
     isExpanded: boolean
     status?: string | null
+    owner?: TabTitleAgentContext
   }
 ): string {
-  const label = getTabDragLabel(item, generatedTitlesEnabled)
+  const label = getTabDragLabel(item, generatedTitlesEnabled, owner)
   if (item.type === 'terminal') {
     return `${item.type}:${item.id}:${item.isPinned}:${isExpanded}:${Boolean(item.data.color)}:${label}`
   }
@@ -270,13 +280,15 @@ export function buildTabStripLayoutKey(
   items: readonly TabBarItem[],
   generatedTitlesEnabled: boolean,
   expandedPaneByTabId: Record<string, boolean>,
-  statusByRelativePath: Map<string, string>
+  statusByRelativePath: Map<string, string>,
+  titleAgentContextByTabId: TabTitleAgentContextByTabId = {}
 ): string {
   return items
     .map((item) =>
       getTabLayoutSignature(item, {
         generatedTitlesEnabled,
         isExpanded: expandedPaneByTabId[item.id] === true,
+        owner: titleAgentContextByTabId[item.id],
         status:
           item.type === 'editor'
             ? (statusByRelativePath.get(normalizeRelativePath(item.data.relativePath)) ?? null)

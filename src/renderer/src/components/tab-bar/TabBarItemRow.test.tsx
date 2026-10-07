@@ -10,6 +10,7 @@ import {
 } from '@/lib/pane-manager/client-hosted-browser-row-state'
 import { i18n } from '@/i18n/i18n'
 import type { TabBarItem } from './tab-bar-item-model'
+import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import type { WorkspaceVisibleTabType } from '../../../../shared/tab-types'
 import {
   renderTabBarItems,
@@ -22,6 +23,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 type TabProps = {
   tab?: { id: string; title: string }
+  displayTitle?: string
   isActive: boolean
   isPinned: boolean
   onActivate: (id: string) => void
@@ -53,7 +55,17 @@ vi.mock('./EditorFileTab', () => ({
 }))
 
 /** Rebuilt on every call, like the strip's projections: equal content, never the same objects. */
-function buildItems({ terminalPinned = false, browserTitle = 'Example' } = {}): TabBarItem[] {
+function buildItems({
+  terminalPinned = false,
+  browserTitle = 'Example',
+  terminalTitle = 'zsh',
+  terminalExtra = {}
+}: {
+  terminalPinned?: boolean
+  browserTitle?: string
+  terminalTitle?: string
+  terminalExtra?: Partial<TerminalTab>
+} = {}): TabBarItem[] {
   return [
     {
       type: 'terminal',
@@ -64,12 +76,13 @@ function buildItems({ terminalPinned = false, browserTitle = 'Example' } = {}): 
         id: 'terminal-1',
         ptyId: null,
         worktreeId: 'wt-1',
-        title: 'zsh',
+        title: terminalTitle,
         generatedTitle: 'Fix the login bug',
         customTitle: null,
         color: null,
         sortOrder: 0,
-        createdAt: 0
+        createdAt: 0,
+        ...terminalExtra
       }
     },
     {
@@ -133,6 +146,9 @@ type StripInputs = {
   managedBrowserCreationEnabled?: boolean
   terminalPinned?: boolean
   browserTitle?: string
+  terminalTitle?: string
+  terminalExtra?: Partial<TerminalTab>
+  titleAgentContextByTabId?: TabBarItemSurfaceRuntime['tabTitleAgentContextByTabId']
   activeTabType?: WorkspaceVisibleTabType
   activeClientHostedBrowserRowId?: string | null
   statusByRelativePath?: TabBarItemSurfaceRuntime['statusByRelativePath']
@@ -144,6 +160,9 @@ function Strip({
   managedBrowserCreationEnabled = false,
   terminalPinned,
   browserTitle,
+  terminalTitle,
+  terminalExtra,
+  titleAgentContextByTabId = EMPTY_TITLE_AGENT_CONTEXT,
   activeTabType = 'terminal',
   activeClientHostedBrowserRowId = null,
   statusByRelativePath = STATUS_BY_RELATIVE_PATH
@@ -163,6 +182,7 @@ function Strip({
     unifiedTabByVisibleId: new Map(),
     nativeChatEnabled: false,
     tabAgentTypesByTabId: {},
+    tabTitleAgentContextByTabId: titleAgentContextByTabId,
     nativeChatTabWideFallbackUnsafeTabsById: {},
     nativeChatTranscriptIsLocalReadable: false,
     managedBrowserCreationEnabled,
@@ -188,7 +208,7 @@ function Strip({
   return (
     <>
       {renderTabBarItems({
-        items: buildItems({ terminalPinned, browserTitle }),
+        items: buildItems({ terminalPinned, browserTitle, terminalTitle, terminalExtra }),
         props,
         runtime,
         actions,
@@ -201,6 +221,8 @@ function Strip({
 }
 
 const NOOP = (): void => {}
+const EMPTY_TITLE_AGENT_CONTEXT: TabBarItemSurfaceRuntime['tabTitleAgentContextByTabId'] =
+  Object.freeze({})
 const STATUS_BY_RELATIVE_PATH: TabBarItemSurfaceRuntime['statusByRelativePath'] = new Map()
 const TAB_IDS = ['terminal-1', 'browser-1', 'file-1', 'session-1']
 let root: Root | null = null
@@ -290,6 +312,18 @@ describe('tab strip rows', () => {
     renderStrip({ generatedTabTitlesEnabled: true })
 
     expect(lastRender('terminal-1').tab?.title).toBe('Fix the login bug')
+  })
+
+  it('vets the display label against the agent context while leaving tab.title raw for identity', () => {
+    const terminalExtra: Partial<TerminalTab> = { defaultTitle: 'Terminal 1' }
+    renderStrip({
+      terminalTitle: '⠋ Claude Code',
+      terminalExtra,
+      titleAgentContextByTabId: { 'terminal-1': { agentType: 'claude', providerSessionId: 's-1' } }
+    })
+
+    expect(lastRender('terminal-1').displayTitle).toBe('Terminal 1')
+    expect(lastRender('terminal-1').tab?.title).toBe('⠋ Claude Code')
   })
 
   it('re-renders a browser tab when duplicating becomes available', () => {
