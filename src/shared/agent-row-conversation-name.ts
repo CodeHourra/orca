@@ -70,7 +70,7 @@ function isCwdLikeTitle(title: string): boolean {
   return !/\s/.test(title) && /[\\/]/.test(title)
 }
 
-function conversationNameFromLiveTitle(
+export function conversationNameFromLiveTitle(
   liveTitle: string,
   agentType: AgentType | null | undefined,
   agentTypeLabelLower: string,

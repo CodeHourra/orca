@@ -8,13 +8,17 @@ import type { BrowserTab as BrowserTabState } from '../../../../shared/browser-w
 import type { GitFileStatus } from '../../../../shared/git-status-types'
 import type { Tab, WorkspaceVisibleTabType } from '../../../../shared/tab-types'
 import type { TerminalTab } from '../../../../shared/terminal-tab-types'
-import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
+import {
+  resolveTerminalTabTitle,
+  type TabTitleAgentContext
+} from '../../../../shared/tab-title-resolution'
 import type { OpenFile } from '../../store/slices/editor'
 import { normalizeRelativePath } from '@/lib/path'
 import { isVirtualEditorFile } from '@/store/slices/editor/tabs/editor-tab-content-type'
 import { tabItemLabel } from './tab-bar-item-label'
 import type { DropIndicator } from './drop-indicator'
 import { reconcileTabOrder } from './reconcile-order'
+import type { TabTitleAgentContextByTabId } from './tab-title-agent-context'
 import { resolveTabIndicatorEdges } from '../tab-group/tab-insertion'
 import type { HoveredTabInsertion } from '../tab-group/useTabDragSplit'
 
@@ -77,12 +81,14 @@ export function resolveEditorTabGitStatus(
 export function getTabDragLabel(
   item: TabBarItem,
   generatedTitlesEnabled: boolean,
-  state: AppState
+  state: AppState,
+  owner?: TabTitleAgentContext
 ): string {
   return tabItemLabel(
     item,
     generatedTitlesEnabled,
-    item.type === 'agent-session' ? readStructuredChatTabSavedName(item.data, state) : null
+    item.type === 'agent-session' ? readStructuredChatTabSavedName(item.data, state) : null,
+    owner
   )
 }
 
@@ -92,18 +98,21 @@ export function getTabLayoutSignature(
     generatedTitlesEnabled,
     isExpanded,
     status,
-    chatNames
+    chatNames,
+    owner
   }: {
     generatedTitlesEnabled: boolean
     isExpanded: boolean
     status?: string | null
     chatNames: StructuredChatTabNames
+    owner?: TabTitleAgentContext
   }
 ): string {
   const label = tabItemLabel(
     item,
     generatedTitlesEnabled,
-    item.type === 'agent-session' ? projectedStructuredChatTabSavedName(item.data, chatNames) : null
+    item.type === 'agent-session' ? projectedStructuredChatTabSavedName(item.data, chatNames) : null,
+    owner
   )
   if (item.type === 'terminal') {
     return `${item.type}:${item.id}:${item.isPinned}:${isExpanded}:${Boolean(item.data.color)}:${label}`
@@ -281,7 +290,8 @@ export function buildTabStripLayoutKey(
   generatedTitlesEnabled: boolean,
   expandedPaneByTabId: Record<string, boolean>,
   statusByRelativePath: Map<string, string>,
-  chatNames: StructuredChatTabNames
+  chatNames: StructuredChatTabNames,
+  titleAgentContextByTabId: TabTitleAgentContextByTabId = {}
 ): string {
   return items
     .map((item) =>
@@ -289,6 +299,7 @@ export function buildTabStripLayoutKey(
         generatedTitlesEnabled,
         chatNames,
         isExpanded: expandedPaneByTabId[item.id] === true,
+        owner: titleAgentContextByTabId[item.id],
         status:
           item.type === 'editor'
             ? (statusByRelativePath.get(normalizeRelativePath(item.data.relativePath)) ?? null)

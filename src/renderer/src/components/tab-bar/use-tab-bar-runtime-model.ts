@@ -3,16 +3,17 @@ import { useShallow } from 'zustand/react/shallow'
 import type { GitFileStatus } from '../../../../shared/git-status-types'
 import type { GlobalSettings } from '../../../../shared/global-settings-types'
 import type { Tab } from '../../../../shared/tab-types'
+import type { TuiAgent } from '../../../../shared/tui-agent'
 import type { ProjectExecutionRuntimeResolution } from '../../../../shared/project-execution-runtime'
 import { useAppStore } from '../../store'
 import { buildStatusMap } from '../right-sidebar/status-display'
-import type { AgentDetectionTarget } from '@/hooks/useDetectedAgents'
+import { useDetectedAgents } from '@/hooks/useDetectedAgents'
 import { useAgentDetectionTargetForWorktree } from '@/hooks/useAgentDetectionTarget'
 import { getConnectionIdFromState } from '@/lib/connection-context'
 import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
 import { isNativeChatTranscriptLocalReadable } from '@/lib/native-chat-transcript-readability'
-import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
-import { runtimeTargetForOwnerEnvironment } from '@/runtime/runtime-client-target'
+import { getRuntimeEnvironmentIdForWorktree } from '@/lib/worktree-runtime-owner'
+import { getActiveRuntimeTarget } from '@/runtime/runtime-rpc-client'
 import { useOptionalShortcutLabel, useShortcutLabel } from '@/hooks/useShortcutLabel'
 import {
   getWindowsTerminalCapabilityOwnerKey,
@@ -24,16 +25,23 @@ import {
   selectTabBarAgentProjections,
   type TabBarAgentProjections
 } from './tab-agent-types-by-tab-id'
+import { buildTabAgentLaunchOptions, orderTabLaunchAgents } from './tab-agent-launch-options'
+import {
+  selectTabBarTitleAgentContext,
+  type TabTitleAgentContextByTabId
+} from './tab-title-agent-context'
+import type { TabAgentLaunchOption } from './tab-agent-launch-options'
+import { DEFAULT_DISABLED_TUI_AGENTS } from '../../../../shared/tui-agent-selection'
 import { shouldShowWindowsShellMenu } from './windows-shell-menu-visibility'
 import { createUnifiedTabLookup } from './tab-bar-item-model'
 import { getClientCreationActionPolicy } from '@/lib/client-creation-action-policy'
-import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
 
 const isWindows = navigator.userAgent.includes('Windows')
 export const isMacOs = navigator.userAgent.includes('Mac')
 type AppStoreState = ReturnType<typeof useAppStore.getState>
 type GitStatusEntries = AppStoreState['gitStatusByWorktree'][string]
 const EMPTY_GIT_STATUS_ENTRIES: GitStatusEntries = []
+const EMPTY_AGENT_CMD_OVERRIDES: Partial<Record<TuiAgent, string>> = {}
 const EMPTY_UNIFIED_TABS: readonly Tab[] = []
 const EMPTY_PROJECTS: AppStoreState['projects'] = []
 const EMPTY_REPOS: AppStoreState['repos'] = []
@@ -68,10 +76,10 @@ export type TabBarRuntimeModel = {
   pinTab: (tabId: string) => void
   unpinTab: (tabId: string) => void
   defaultWindowsShell: string
-  agentDetectionTarget: AgentDetectionTarget | undefined
   defaultWindowsPowerShellImplementation: ReturnType<
     typeof resolveWindowsPowerShellImplementationSetting
   >
+  agentLaunchOptions: TabAgentLaunchOption[]
   windowsTerminalCapabilities: WindowsTerminalCapabilities
   showWindowsShellMenu: boolean
   projectRuntimeShellMenuMode: ReturnType<typeof getProjectRuntimeShellMenuMode>
@@ -83,6 +91,7 @@ export type TabBarRuntimeModel = {
   nativeChatTranscriptIsLocalReadable: boolean
   managedBrowserCreationEnabled: boolean
   mobileEmulatorCreationEnabled: boolean
+  tabTitleAgentContextByTabId: TabTitleAgentContextByTabId
 } & TabBarAgentProjections
 
 export function useTabBarRuntimeModel({
@@ -117,7 +126,6 @@ export function useTabBarRuntimeModel({
   const defaultWindowsShell = useAppStore(
     (s) => s.settings?.terminalWindowsShell ?? 'powershell.exe'
   )
-  const agentDetectionTarget = useAgentDetectionTargetForWorktree(worktreeId)
   const defaultWindowsPowerShellImplementation = useAppStore((s) =>
     resolveWindowsPowerShellImplementationSetting(s.settings)
   )
@@ -125,8 +133,8 @@ export function useTabBarRuntimeModel({
   const activeWorktreeId = useAppStore((s) => s.activeWorktreeId)
   const settings = useAppStore((s) => s.settings)
   // Why: use the worktree's owning host so offered Windows shells match the host that actually runs the terminal.
-  const activeRuntimeEnvironmentId = useAppStore((s) =>
-    runtimeEnvironmentIdOrLocalUnlessTwin(s, worktreeId)
+  const activeRuntimeEnvironmentId = useAppStore(
+    (s) => getRuntimeEnvironmentIdForWorktree(s, worktreeId)?.trim() || null
   )
   // Why: retained tab strips rerun selectors on every store write; reuse canonical indexes, don't flatten both slices here.
   const worktreeConnectionId = useAppStore(
@@ -138,13 +146,30 @@ export function useTabBarRuntimeModel({
     }
     return s.sshConnectionStates.get(worktreeConnectionId)?.remotePlatform ?? null
   })
+  const defaultAgent = useAppStore((s) => s.settings?.defaultTuiAgent)
+  const disabledTuiAgents = useAppStore(
+    (s) => s.settings?.disabledTuiAgents ?? DEFAULT_DISABLED_TUI_AGENTS
+  )
+  const agentCmdOverrides = useAppStore(
+    (s) => s.settings?.agentCmdOverrides ?? EMPTY_AGENT_CMD_OVERRIDES
+  )
+  const agentDetectionTarget = useAgentDetectionTargetForWorktree(worktreeId)
+  const { detectedIds } = useDetectedAgents(agentDetectionTarget)
+  const agentLaunchOptions = useMemo(
+    () =>
+      buildTabAgentLaunchOptions(
+        orderTabLaunchAgents(defaultAgent, detectedIds ?? [], disabledTuiAgents),
+        agentCmdOverrides
+      ),
+    [agentCmdOverrides, defaultAgent, detectedIds, disabledTuiAgents]
+  )
   const isWebClient = (globalThis as { __ORCA_WEB_CLIENT__?: boolean }).__ORCA_WEB_CLIENT__ === true
   const windowsTerminalCapabilityOwnerKey = getWindowsTerminalCapabilityOwnerKey(
     activeRuntimeEnvironmentId,
     worktreeConnectionId
   )
   const runtimeTarget = useMemo(
-    () => runtimeTargetForOwnerEnvironment(activeRuntimeEnvironmentId),
+    () => getActiveRuntimeTarget({ activeRuntimeEnvironmentId }),
     [activeRuntimeEnvironmentId]
   )
   const shouldProbeWindowsShellCapabilities =
@@ -174,7 +199,7 @@ export function useTabBarRuntimeModel({
   const projects = useAppStore((s) => (needsLocalProjectRuntime ? s.projects : EMPTY_PROJECTS))
   const repos = useAppStore((s) => (needsLocalProjectRuntime ? s.repos : EMPTY_REPOS))
   const worktreesByRepo = useAppStore((s) =>
-    needsLocalProjectRuntime ? selectWorktreesByRepo(s) : EMPTY_WORKTREES_BY_REPO
+    needsLocalProjectRuntime ? s.worktreesByRepo : EMPTY_WORKTREES_BY_REPO
   )
   const localProjectRuntime = useMemo(() => {
     if (!needsLocalProjectRuntime) {
@@ -234,6 +259,8 @@ export function useTabBarRuntimeModel({
   const nativeChatTranscriptIsLocalReadable = useAppStore((s) =>
     isNativeChatTranscriptLocalReadable(getConnectionIdFromState(s, worktreeId))
   )
+  // Why: same hot maps as the agent projection; the shared selector keeps per-tab identity stable across status churn.
+  const tabTitleAgentContextByTabId = useAppStore(useShallow(selectTabBarTitleAgentContext))
 
   return {
     newTerminalShortcut,
@@ -248,8 +275,8 @@ export function useTabBarRuntimeModel({
     pinTab,
     unpinTab,
     defaultWindowsShell,
-    agentDetectionTarget,
     defaultWindowsPowerShellImplementation,
+    agentLaunchOptions,
     windowsTerminalCapabilities,
     showWindowsShellMenu,
     projectRuntimeShellMenuMode,
@@ -260,6 +287,7 @@ export function useTabBarRuntimeModel({
     toggleTabViewMode,
     nativeChatEnabled,
     tabAgentTypesByTabId,
+    tabTitleAgentContextByTabId,
     nativeChatTabWideFallbackUnsafeTabsById,
     nativeChatTranscriptIsLocalReadable,
     managedBrowserCreationEnabled,

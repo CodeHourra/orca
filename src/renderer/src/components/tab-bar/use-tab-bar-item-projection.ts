@@ -11,6 +11,7 @@ import {
   type TabBarItem
 } from './tab-bar-item-model'
 import type { DropIndicator } from './drop-indicator'
+import type { TabTitleAgentContextByTabId } from './tab-title-agent-context'
 import { sameStringArray } from '@/runtime/web-session-tabs-sync/state-equality-core'
 
 export type TabBarItemProjection = {
@@ -27,7 +28,8 @@ export function useTabBarItemProjection({
   unifiedTabs,
   unifiedTabByVisibleId,
   generatedTabTitlesEnabled,
-  statusByRelativePath
+  statusByRelativePath,
+  titleAgentContextByTabId
 }: {
   props: TabBarProps
   resolvedGroupId: string
@@ -35,6 +37,7 @@ export function useTabBarItemProjection({
   unifiedTabByVisibleId: Map<string, Tab>
   generatedTabTitlesEnabled: boolean
   statusByRelativePath: Map<string, GitFileStatus>
+  titleAgentContextByTabId: TabTitleAgentContextByTabId
 }): TabBarItemProjection {
   const {
     tabs,
@@ -147,9 +150,17 @@ export function useTabBarItemProjection({
         generatedTabTitlesEnabled,
         expandedPaneByTabId,
         statusByRelativePath,
-        chatNames
+        chatNames,
+        titleAgentContextByTabId
       ),
-    [expandedPaneByTabId, generatedTabTitlesEnabled, orderedItems, statusByRelativePath, chatNames]
+    [
+      expandedPaneByTabId,
+      generatedTabTitlesEnabled,
+      orderedItems,
+      statusByRelativePath,
+      chatNames,
+      titleAgentContextByTabId
+    ]
   )
 
   return {

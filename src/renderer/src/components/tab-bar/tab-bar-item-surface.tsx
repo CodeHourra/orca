@@ -30,6 +30,7 @@ export type TabBarItemSurfaceRuntime = Pick<
   | 'generatedTabTitlesEnabled'
   | 'unifiedTabByVisibleId'
   | 'tabAgentTypesByTabId'
+  | 'tabTitleAgentContextByTabId'
   | 'nativeChatTabWideFallbackUnsafeTabsById'
   | 'nativeChatTranscriptIsLocalReadable'
   | 'managedBrowserCreationEnabled'
@@ -67,6 +68,7 @@ export function renderTabBarItems({
     generatedTabTitlesEnabled,
     unifiedTabByVisibleId,
     tabAgentTypesByTabId,
+    tabTitleAgentContextByTabId,
     nativeChatTabWideFallbackUnsafeTabsById,
     nativeChatTranscriptIsLocalReadable,
     managedBrowserCreationEnabled,
@@ -144,6 +146,9 @@ export function renderTabBarItems({
         canCloseSplitPane={props.onCloseSplitPane !== undefined}
         gitStatus={
           item.type === 'editor' ? resolveEditorTabGitStatus(item.data, statusByRelativePath) : null
+        }
+        titleAgentContext={
+          item.type === 'terminal' ? tabTitleAgentContextByTabId[item.data.id] : undefined
         }
       />
     )

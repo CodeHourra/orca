@@ -1,15 +1,19 @@
 import type { TabBarItem } from './tab-bar-item-model'
-import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
+import {
+  resolveTerminalTabTitle,
+  type TabTitleAgentContext
+} from '../../../../shared/tab-title-resolution'
 import { getEditorDisplayLabel } from '@/components/editor/editor-labels'
 import { getBrowserTabLabel } from './BrowserTab'
 
 export function tabItemLabel(
   item: TabBarItem,
   generatedTitlesEnabled: boolean,
-  savedName: string | null
+  savedName: string | null,
+  owner?: TabTitleAgentContext
 ): string {
   if (item.type === 'terminal') {
-    return resolveTerminalTabTitle(item.data, generatedTitlesEnabled, item.data.title)
+    return resolveTerminalTabTitle(item.data, generatedTitlesEnabled, item.data.title, owner)
   }
   if (item.type === 'browser') {
     return getBrowserTabLabel(item.data)
