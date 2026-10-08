@@ -86,6 +86,10 @@ export function useTabGroupItemProjections({
             defaultTitle: terminalTab?.defaultTitle,
             quickCommandLabel: terminalTab?.quickCommandLabel ?? item.quickCommandLabel ?? null,
             generatedTitle: terminalTab?.generatedTitle ?? item.generatedLabel ?? null,
+            // Why: this rebuild is what the strip reads, and `title` above already folded a
+            // store-only vault name in via `resolveUnifiedTabLabel`. Without the field, the
+            // resolver's vault branch is dead and the label falls to the generated title.
+            aiVaultTitle: terminalTab?.aiVaultTitle ?? item.aiVaultTitle ?? null,
             customTitle: item.customLabel ?? terminalTab?.customTitle ?? null,
             color: item.color ?? terminalTab?.color ?? null,
             sortOrder: item.sortOrder,
