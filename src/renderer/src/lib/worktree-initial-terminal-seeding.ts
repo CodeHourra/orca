@@ -276,7 +276,13 @@ export function ensureWorktreeHasInitialTerminal(
 
   // Why: an empty activation used to seed a bare shell; follow the global default
   // agent so clicking a worktree with no tabs matches Settings → Agents.
-  if (!sequencedStartup && !setup && !issueCommand) {
+  // Gated on the seeding intent so the chat-decline path still seeds a plain shell.
+  if (
+    opts?.seedUserDefaultSurface === true &&
+    !sequencedStartup &&
+    !setup &&
+    !issueCommand
+  ) {
     sequencedStartup = buildEmptyWorktreeDefaultAgentStartup(worktreeId)
   }
 
