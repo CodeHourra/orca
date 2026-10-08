@@ -64,6 +64,7 @@ vi.mock('lucide-react', () => ({
   Pencil: () => null,
   Pin: () => null,
   PinOff: () => null,
+  RefreshCw: () => null,
   SquareTerminal: () => null,
   X: () => null
 }))
@@ -298,5 +299,24 @@ describe('SortableTabContextMenu', () => {
 
     expect(container.textContent).not.toContain('Move Tab to Split')
     expect(container.textContent).toContain('Split terminal right')
+  })
+
+  it('offers Sync Session Name only when the tab has a session to sync', () => {
+    const withSession = renderMenu({ onSyncSessionName: vi.fn() })
+    expect(getButton(withSession.container, 'Sync Session Name')).toBeInstanceOf(HTMLButtonElement)
+
+    // No handler means no AI Vault agent session on this tab, so the item is hidden
+    // rather than shown as a no-op.
+    const withoutSession = renderMenu()
+    expect(withoutSession.container.textContent).not.toContain('Sync Session Name')
+  })
+
+  it('invokes the sync handler for this tab', () => {
+    const onSyncSessionName = vi.fn()
+    const { container } = renderMenu({ onSyncSessionName })
+
+    getButton(container, 'Sync Session Name').click()
+
+    expect(onSyncSessionName).toHaveBeenCalledTimes(1)
   })
 })

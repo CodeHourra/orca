@@ -18,6 +18,7 @@ import {
   type TabBarItemSurfaceRuntime
 } from './tab-bar-item-surface'
 import { useTabBarItemActions } from './use-tab-bar-item-actions'
+import { useAppStore } from '../../store'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
@@ -28,6 +29,7 @@ type TabProps = {
   isPinned: boolean
   onActivate: (id: string) => void
   onDuplicate?: () => void
+  onSyncSessionName?: () => void
   gitStatus?: string | null
 }
 
@@ -259,6 +261,7 @@ afterEach(() => {
   root = null
   tabRenders.length = 0
   clearClientHostedBrowserRowSelection()
+  useAppStore.setState({ agentStatusByPaneKey: {}, tabsByWorktree: {} })
 })
 
 describe('tab strip rows', () => {
@@ -324,6 +327,34 @@ describe('tab strip rows', () => {
 
     expect(lastRender('terminal-1').displayTitle).toBe('Terminal 1')
     expect(lastRender('terminal-1').tab?.title).toBe('⠋ Claude Code')
+  })
+
+  it('hands the tab context menu a session-name sync handler only when the pane has one', () => {
+    renderStrip()
+    expect(lastRender('terminal-1').onSyncSessionName).toBeUndefined()
+
+    // The pane's agent session is what makes the sync meaningful; the row reads it
+    // from the same store the background title sync does.
+    act(() => {
+      useAppStore.setState({
+        agentStatusByPaneKey: {
+          'terminal-1:leaf-1': {
+            state: 'done',
+            prompt: '',
+            updatedAt: 1,
+            stateStartedAt: 1,
+            stateHistory: [],
+            agentType: 'claude',
+            paneKey: 'terminal-1:leaf-1',
+            tabId: 'terminal-1',
+            worktreeId: 'wt-1',
+            providerSession: { key: 'session_id', id: 's-1', transcriptPath: '/s/x.jsonl' }
+          }
+        }
+      })
+    })
+
+    expect(typeof lastRender('terminal-1').onSyncSessionName).toBe('function')
   })
 
   it('re-renders a browser tab when duplicating becomes available', () => {

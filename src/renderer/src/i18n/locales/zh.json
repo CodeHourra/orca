@@ -18156,7 +18156,8 @@
         "SortableTabContextMenu": {
           "switchToTerminalView": "切换到终端视图",
           "switchToChatView": "切换到聊天视图",
-          "closeTabsToLeft": "关闭左侧的选项卡"
+          "closeTabsToLeft": "关闭左侧的选项卡",
+          "syncSessionName": "同步会话名称"
         },
         "BrowserTab": {
           "closeOthers": "关闭其他",

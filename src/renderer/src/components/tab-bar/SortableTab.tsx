@@ -50,6 +50,8 @@ type SortableTabProps = {
   onCloseToRight: (tabId: string) => void
   onCloseToLeft: (tabId: string) => void
   onSetCustomTitle: (tabId: string, title: string | null) => void
+  /** Re-resolve this tab's AI Vault conversation name; absent when it has none. */
+  onSyncSessionName?: () => void
   onSetTabColor: (tabId: string, color: string | null) => void
   onTogglePin: () => void
   onToggleExpand: (tabId: string) => void
@@ -82,6 +84,7 @@ export default function SortableTab({
   onCloseToRight,
   onCloseToLeft,
   onSetCustomTitle,
+  onSyncSessionName,
   onSetTabColor,
   onTogglePin,
   onToggleExpand,
@@ -393,6 +396,7 @@ export default function SortableTab({
         onCloseToRight={onCloseToRight}
         onCloseToLeft={onCloseToLeft}
         onRenameOpen={handleRenameOpen}
+        onSyncSessionName={onSyncSessionName}
         onSetTabColor={onSetTabColor}
         onTogglePin={onTogglePin}
         canToggleViewMode={canToggleViewMode}

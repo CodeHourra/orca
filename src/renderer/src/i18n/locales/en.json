@@ -18412,7 +18412,8 @@
         "SortableTabContextMenu": {
           "switchToTerminalView": "Switch to terminal view",
           "switchToChatView": "Switch to chat view",
-          "closeTabsToLeft": "Close Tabs To The Left"
+          "closeTabsToLeft": "Close Tabs To The Left",
+          "syncSessionName": "Sync Session Name"
         },
         "BrowserTab": {
           "closeOthers": "Close Others",

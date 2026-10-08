@@ -1,4 +1,5 @@
 import type {
+  AiVaultSessionTitleRequest,
   AiVaultSessionTitlesArgs,
   AiVaultSessionTitlesResult
 } from '../../../shared/ai-vault-session-title'
@@ -15,6 +16,17 @@ const LIVE_TITLE_REFRESH_MS = 5 * 60_000
 
 function requestIdentity(request: AiVaultTitleRequest): string {
   return `${request.executionHostId}\0${request.agent}\0${request.providerSession.id}`
+}
+
+/** The wire shape for one request; the host resolves it back by the same identity. */
+function toWireTitleRequest(request: AiVaultTitleRequest): AiVaultSessionTitleRequest {
+  return {
+    agent: request.agent,
+    sessionId: request.providerSession.id,
+    ...(request.providerSession.transcriptPath
+      ? { transcriptPath: request.providerSession.transcriptPath }
+      : {})
+  }
 }
 
 type SyncDependencies = {
@@ -59,6 +71,59 @@ function nextLiveRefreshDelay(state: AppState, requests: AiVaultTitleRequest[]):
   return hasMissingTitle ? MISSING_TITLE_REFRESH_MS : LIVE_TITLE_REFRESH_MS
 }
 
+/**
+ * Re-resolve one tab's AI Vault conversation name on demand.
+ *
+ * Why: the background sync only re-asks when its inputs change, so a name that has
+ * since changed in the provider's own transcript never reaches an already-open tab.
+ * The context menu's "Sync Session Name" calls this for the tab it was opened on.
+ *
+ * Returns false when the tab has no resolvable agent session or the host answered
+ * with no title; the stored name is then left as it was rather than cleared.
+ */
+export async function refreshAiVaultTabTitle(args: {
+  getState: () => AppState
+  resolveSessionTitles: (args: AiVaultSessionTitlesArgs) => Promise<AiVaultSessionTitlesResult>
+  tabId: string
+}): Promise<boolean> {
+  const request = collectAiVaultTitleRequests(args.getState()).find(
+    (candidate) => candidate.tabId === args.tabId
+  )
+  if (!request) {
+    return false
+  }
+  let result: AiVaultSessionTitlesResult
+  try {
+    result = await args.resolveSessionTitles({
+      executionHostScope: request.executionHostId,
+      requests: [toWireTitleRequest(request)]
+    })
+  } catch {
+    return false
+  }
+  const identity = requestIdentity(request)
+  const title = result.titles
+    .find((entry) => `${request.executionHostId}\0${entry.agent}\0${entry.sessionId}` === identity)
+    ?.title.trim()
+  if (!title) {
+    return false
+  }
+  // Why re-collect: the tab may have died, or been reused by another agent
+  // session, while the host was reading the transcript.
+  const current = collectAiVaultTitleRequests(args.getState()).find(
+    (candidate) => candidate.tabId === args.tabId
+  )
+  if (!current || requestIdentity(current) !== identity) {
+    return false
+  }
+  args.getState().setAiVaultTabTitle(args.tabId, {
+    agent: request.agent,
+    sessionId: request.providerSession.id,
+    title
+  })
+  return true
+}
+
 export function startAiVaultTabTitleSync(dependencies: SyncDependencies): () => void {
   const setTimer = dependencies.setTimer ?? setTimeout
   const clearTimer =
@@ -91,13 +156,7 @@ export function startAiVaultTabTitleSync(dependencies: SyncDependencies): () => 
     const first = requests[0]!
     const result = await dependencies.resolveSessionTitles({
       executionHostScope: first.executionHostId,
-      requests: requests.map((request) => ({
-        agent: request.agent,
-        sessionId: request.providerSession.id,
-        ...(request.providerSession.transcriptPath
-          ? { transcriptPath: request.providerSession.transcriptPath }
-          : {})
-      }))
+      requests: requests.map(toWireTitleRequest)
     })
     if (stopped) {
       return

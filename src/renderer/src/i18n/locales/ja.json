@@ -18186,7 +18186,8 @@
         "SortableTabContextMenu": {
           "switchToTerminalView": "ターミナルビューに切り替える",
           "switchToChatView": "チャットビューに切り替える",
-          "closeTabsToLeft": "左側のタブを閉じる"
+          "closeTabsToLeft": "左側のタブを閉じる",
+          "syncSessionName": "セッション名を同期"
         },
         "BrowserTab": {
           "closeOthers": "その他を閉じる",

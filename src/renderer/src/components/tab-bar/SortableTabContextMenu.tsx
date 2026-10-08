@@ -5,6 +5,7 @@ import {
   Pin,
   PinOff,
   Pencil,
+  RefreshCw,
   SquareTerminal,
   X,
   ListX
@@ -105,6 +106,8 @@ type SortableTabContextMenuProps = {
   onCloseToRight: (tabId: string) => void
   onCloseToLeft: (tabId: string) => void
   onRenameOpen: () => void
+  /** Re-resolve this tab's AI Vault conversation name from its provider transcript. */
+  onSyncSessionName?: () => void
   onSetTabColor: (tabId: string, color: string | null) => void
   onTogglePin: () => void
   /** True when this tab is an agent terminal that can switch between the terminal
@@ -137,6 +140,7 @@ export function SortableTabContextMenu({
   onCloseToRight,
   onCloseToLeft,
   onRenameOpen,
+  onSyncSessionName,
   onSetTabColor,
   onTogglePin,
   canToggleViewMode = false,
@@ -234,6 +238,15 @@ export function SortableTabContextMenu({
           {translate('auto.components.tab.bar.SortableTabContextMenu.2f697b3c31', 'Change Title')}
           {renameShortcut ? <DropdownMenuShortcut>{renameShortcut}</DropdownMenuShortcut> : null}
         </DropdownMenuItem>
+        {onSyncSessionName ? (
+          <DropdownMenuItem onSelect={onSyncSessionName}>
+            <RefreshCw className="size-3.5" />
+            {translate(
+              'components.tab.bar.SortableTabContextMenu.syncSessionName',
+              'Sync Session Name'
+            )}
+          </DropdownMenuItem>
+        ) : null}
         <div className="px-2 pt-1.5 pb-1">
           <div className="text-xs font-medium text-muted-foreground mb-1.5">
             {translate('auto.components.tab.bar.SortableTabContextMenu.35e8892fd0', 'Tab Color')}
