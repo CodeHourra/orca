@@ -48,6 +48,8 @@ package-lock.json
 # Keep metadata exclusions in sync with isOsMetadataSkillEntryName (skill-package-identity.ts).
 *.stackdump
 .DS_Store
+# Spotlight opt-out marker: stops mds from re-indexing this working tree
+.metadata_never_index
 ._*
 Thumbs.db
 ehthumbs.db
