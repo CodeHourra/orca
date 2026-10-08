@@ -7,6 +7,7 @@ import { AI_VAULT_SCOPE_PATHS_MAX_COUNT, type AiVaultListResult } from '../share
 import { LOCAL_EXECUTION_HOST_ID } from '../shared/execution-host'
 import {
   AI_VAULT_SESSION_TITLE_REQUEST_MAX_COUNT,
+  isAiVaultTitleAgent,
   type AiVaultSessionTitleRequest,
   type AiVaultSessionTitlesResult
 } from '../shared/ai-vault-session-title'
@@ -159,7 +160,7 @@ function normalizeTitleRequests(raw: unknown): AiVaultSessionTitleRequest[] {
     const transcriptPath =
       typeof record.transcriptPath === 'string' ? record.transcriptPath.trim() : ''
     if (
-      (agent !== 'claude' && agent !== 'codex') ||
+      !isAiVaultTitleAgent(agent) ||
       !sessionId ||
       sessionId.length > 512 ||
       !transcriptPath ||

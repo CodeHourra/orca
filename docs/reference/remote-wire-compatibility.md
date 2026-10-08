@@ -163,6 +163,33 @@ intersections keep the requested filters and use the existing no-match scope, so
 consent, readiness, and unknown-scope results retain their normal precedence.
 Local IPC advertises this build's full list, and every remote leg negotiates separately.
 
+## Session-title agents are an enum, so tier them
+
+`aiVault.resolveSessionTitles` carries a closed `agent` enum — the same rule-4 hazard as
+the search vocabulary above, but with no negotiation channel. A released host parses
+`agent` with `z.enum(['claude', 'codex'])`, so sending it `pi` or `omp` refuses the **whole
+request**, not just that entry: one widened agent would take every `claude`/`codex` title
+batched alongside it down too.
+
+The client therefore splits each host's requests into the released set and the widened set
+(`batchAiVaultTitleRequests`, keyed on `AI_VAULT_SESSION_TITLE_AGENTS_V1`). They travel
+separately, so a newer client still gets v1 titles from an older host while the widened
+request degrades on its own. The client-side reader returns nothing for a refused request,
+so the failure is a missing title, never a broken list row.
+
+The reverse skew needs no handling: an older client only ever asks for `claude`/`codex`, and
+the host answers what was requested, so an old client can never receive an agent its reply
+validator would reject.
+
+`pi` and `omp` are in the widened set because their recorded transcript carries a name the
+scanner folds — `pi`'s first user prompt, OMP's persisted `session.title`/`title_change` —
+reached through the `transcriptPath` their hooks report. An agent whose transcript the
+scanner cannot name must not be added to `AI_VAULT_SESSION_TITLE_AGENTS`: admitting it
+produces a request that always resolves to no title.
+
+The tier split is transitional. Once no supported release predates `pi`/`omp`, delete the
+split and `AI_VAULT_SESSION_TITLE_AGENTS_V1` with it.
+
 ## Enforcement
 
 `tests/e2e/cross-version-wire/cross-version-terminal-wire.unit.test.ts` runs the real
