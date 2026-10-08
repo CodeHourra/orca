@@ -32,8 +32,7 @@ async function readOneTitle(
       return null
     }
     // Why: this key is a raw lstat with no content dependency, so it only
-    // matches the scanner's for providers that declare none — today claude and
-    // codex, which is all this request type carries.
+    // matches the scanner's for providers that declare none.
     const session = await parseAgentSessionFileCached(
       {
         agent: request.agent,

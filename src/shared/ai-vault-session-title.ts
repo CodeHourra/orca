@@ -14,16 +14,12 @@ export const AI_VAULT_SESSION_TITLE_REQUEST_MAX_COUNT = 64
 // newer client must not send `pi`/`omp` to it (see `AI_VAULT_SESSION_TITLE_AGENTS_V1`).
 export const AI_VAULT_SESSION_TITLE_AGENTS = ['claude', 'codex', 'pi', 'omp'] as const
 
-export type AiVaultSessionTitleAgent = (typeof AI_VAULT_SESSION_TITLE_AGENTS)[number]
-
 /** The agent set every released host already accepts; usable without negotiation. */
-export const AI_VAULT_SESSION_TITLE_AGENTS_V1: readonly AiVaultSessionTitleAgent[] = [
-  'claude',
-  'codex'
-]
+export const AI_VAULT_SESSION_TITLE_AGENTS_V1: readonly (typeof AI_VAULT_SESSION_TITLE_AGENTS)[number][] =
+  ['claude', 'codex']
 
 export type AiVaultSessionTitle = {
-  agent: AiVaultSessionTitleAgent
+  agent: (typeof AI_VAULT_SESSION_TITLE_AGENTS)[number]
   sessionId: string
   title: string
 }
