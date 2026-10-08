@@ -1,4 +1,4 @@
-import { Pencil, Pin, PinOff, SquareTerminal, X } from 'lucide-react'
+import { Pencil, Pin, PinOff, RefreshCw, SquareTerminal, X } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,6 +102,8 @@ type SortableTabContextMenuProps = {
   onCloseToLeft: (tabId: string) => void
   onCloseSplitPane?: () => void
   onRenameOpen: () => void
+  /** Re-resolve this tab's AI Vault conversation name from its provider transcript. */
+  onSyncSessionName?: () => void
   onSetTabColor: (tabId: string, color: string | null) => void
   onTogglePin: () => void
   /** Only terminal-backed agent tabs can switch view; structured chats have no terminal beneath them. */
@@ -130,6 +132,7 @@ export function SortableTabContextMenu({
   onCloseOthers,
   onCloseSplitPane,
   onRenameOpen,
+  onSyncSessionName,
   onSetTabColor,
   onTogglePin,
   canToggleViewMode = false,
@@ -215,6 +218,15 @@ export function SortableTabContextMenu({
           {translate('auto.components.tab.bar.SortableTabContextMenu.2f697b3c31', 'Change Title')}
           {renameShortcut ? <DropdownMenuShortcut>{renameShortcut}</DropdownMenuShortcut> : null}
         </DropdownMenuItem>
+        {onSyncSessionName ? (
+          <DropdownMenuItem onSelect={onSyncSessionName}>
+            <RefreshCw className="size-3.5" />
+            {translate(
+              'components.tab.bar.SortableTabContextMenu.syncSessionName',
+              'Sync Session Name'
+            )}
+          </DropdownMenuItem>
+        ) : null}
         <div className="pt-1.5 pr-2.5 pb-1.5 pl-8">
           <div className="text-2xs font-semibold text-muted-foreground mb-1.5">
             {translate('auto.components.tab.bar.SortableTabContextMenu.35e8892fd0', 'Tab Color')}

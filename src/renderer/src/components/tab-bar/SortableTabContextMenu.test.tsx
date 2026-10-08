@@ -9,6 +9,7 @@ import { requestActiveTerminalPaneSplit } from './request-active-terminal-pane-s
 import { SortableTabContextMenu } from './SortableTabContextMenu'
 
 const storeMock = vi.hoisted(() => ({
+  dropUnifiedTab: vi.fn(),
   state: {
     keybindings: {},
     unifiedTabsByWorktree: {},
@@ -63,6 +64,7 @@ vi.mock('lucide-react', () => ({
   Pencil: () => null,
   Pin: () => null,
   PinOff: () => null,
+  RefreshCw: () => null,
   SquareTerminal: () => null,
   X: () => null
 }))
@@ -76,28 +78,20 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('./TabSessionSurfaceSwitchMenuItems', () => ({
   TabSessionSurfaceSwitchMenuItems: ({
     tab,
-    nativeChat,
+    structuredSessionId,
     leadingSeparator
   }: {
     tab: { id: string }
-    nativeChat?: { sessionId: string }
+    structuredSessionId?: string
     leadingSeparator: boolean
   }) => (
     <div
       data-testid="session-surface-switch"
       data-tab-id={tab.id}
-      data-structured-session-id={nativeChat?.sessionId ?? ''}
+      data-structured-session-id={structuredSessionId ?? ''}
       data-leading-separator={String(leadingSeparator)}
     />
   )
-}))
-
-// The menu's move goes where the tab bar's does; that move's own path is pinned in
-// tab-move-to-pane-column.test.ts and, through main's frame, tab-moves-drawn-from-frames.test.ts.
-const moveMock = vi.hoisted(() => ({ moveTabToNewPaneColumn: vi.fn(() => true) }))
-vi.mock('./tab-move-to-pane-column', async (importOriginal) => ({
-  ...(await importOriginal<object>()),
-  moveTabToNewPaneColumn: moveMock.moveTabToNewPaneColumn
 }))
 
 vi.mock('../../store', () => ({
@@ -123,7 +117,16 @@ function renderMenu(overrides: Partial<ComponentProps<typeof SortableTabContextM
   act(() => {
     root.render(
       <SortableTabContextMenu
-        tab={{ id: 'term-1', worktreeId: 'wt-1', color: null }}
+        tab={{
+          id: 'term-1',
+          ptyId: null,
+          worktreeId: 'wt-1',
+          title: 'bash',
+          customTitle: null,
+          color: null,
+          sortOrder: 0,
+          createdAt: 0
+        }}
         unifiedTabId="tab-1"
         groupId="group-1"
         isActive
@@ -177,9 +180,10 @@ function getLastSplitEvent(spy: ReturnType<typeof vi.spyOn>): CustomEvent {
 }
 
 beforeEach(() => {
-  moveMock.moveTabToNewPaneColumn.mockClear()
+  storeMock.dropUnifiedTab.mockReset()
   storeMock.state = {
     keybindings: {},
+    dropUnifiedTab: storeMock.dropUnifiedTab,
     groupsByWorktree: {
       'wt-1': [
         {
@@ -270,14 +274,14 @@ describe('SortableTabContextMenu', () => {
   it('does not expose a native/terminal view switch', () => {
     const { container } = renderMenu()
 
-    expect(container.textContent).not.toContain('Continue with Terminal Agent')
-    expect(container.textContent).not.toContain('Continue in Chat UI')
+    expect(container.textContent).not.toContain('Switch to terminal view')
+    expect(container.textContent).not.toContain('Switch to chat view')
   })
 
   it('hides switching a terminal-view tab into chat view', () => {
     const { container } = renderMenu({ canToggleViewMode: true, onToggleViewMode: vi.fn() })
 
-    expect(container.textContent).not.toContain('Continue in Chat UI')
+    expect(container.textContent).not.toContain('Switch to chat view')
   })
 
   it('keeps the way back for a tab already in chat view, in the chat/CLI move section', () => {
@@ -289,16 +293,16 @@ describe('SortableTabContextMenu', () => {
     })
     const marker = getSurfaceSwitchMarker(container)
 
-    expect(
-      getButton(container, 'Continue with Terminal Agent').compareDocumentPosition(marker)
-    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(getButton(container, 'Switch to terminal view').compareDocumentPosition(marker)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    )
     expect(marker.getAttribute('data-leading-separator')).toBe('false')
-    act(() => getButton(container, 'Continue with Terminal Agent').click())
+    act(() => getButton(container, 'Switch to terminal view').click())
     expect(onToggleViewMode).toHaveBeenCalled()
   })
 
   it('offers the session-history chat/CLI move right above Pin Tab', () => {
-    const { container } = renderMenu({ nativeChat: { sessionId: 'orca-chat-1', agent: 'codex' } })
+    const { container } = renderMenu({ structuredSessionId: 'orca-chat-1' })
     const marker = getSurfaceSwitchMarker(container)
 
     expect(marker.getAttribute('data-tab-id')).toBe('term-1')
@@ -332,16 +336,16 @@ describe('SortableTabContextMenu', () => {
   })
 
   it('renders split actions and routes directions to the move path', () => {
+    storeMock.dropUnifiedTab.mockReturnValue(true)
     const { container } = renderMenu()
 
     expect(container.textContent).toContain('Move Tab to Split')
     expect(container.textContent).toContain('Split terminal')
 
     act(() => getButton(container, 'Right').click())
-    expect(moveMock.moveTabToNewPaneColumn).toHaveBeenCalledWith({
-      unifiedTabId: 'tab-1',
+    expect(storeMock.dropUnifiedTab).toHaveBeenCalledWith('tab-1', {
       groupId: 'group-1',
-      direction: 'right'
+      splitDirection: 'right'
     })
   })
 
@@ -352,14 +356,34 @@ describe('SortableTabContextMenu', () => {
     expect(container.textContent).not.toContain('Split terminal')
   })
 
-  it('keeps Close Others available without directional close entries', () => {
+  it('routes the directional close actions to their handlers with the tab id', () => {
     const onCloseOthers = vi.fn()
-    const { container } = renderMenu({ onCloseOthers })
+    const onCloseToRight = vi.fn()
+    const onCloseToLeft = vi.fn()
+    const { container } = renderMenu({
+      onCloseOthers,
+      onCloseToRight,
+      onCloseToLeft
+    })
 
     act(() => getButton(container, 'Close Others').click())
     expect(onCloseOthers).toHaveBeenCalledWith('term-1')
-    expect(container.textContent).not.toContain('Close All Tabs To The Left')
-    expect(container.textContent).not.toContain('Close All Tabs To The Right')
+
+    act(() => getButton(container, 'Close Tabs To The Right').click())
+    expect(onCloseToRight).toHaveBeenCalledWith('term-1')
+
+    act(() => getButton(container, 'Close Tabs To The Left').click())
+    expect(onCloseToLeft).toHaveBeenCalledWith('term-1')
+  })
+
+  it('disables directional closes when no tabs exist on that side', () => {
+    const { container } = renderMenu({
+      hasTabsToLeft: false,
+      hasTabsToRight: false
+    })
+
+    expect(getButton(container, 'Close Tabs To The Left').disabled).toBe(true)
+    expect(getButton(container, 'Close Tabs To The Right').disabled).toBe(true)
   })
 
   it('hides move-tab split actions for a single-tab group', () => {
@@ -382,12 +406,22 @@ describe('SortableTabContextMenu', () => {
     expect(container.textContent).toContain('Split terminal right')
   })
 
-  it('offers Close split pane only when the group is one of several splits', () => {
-    const onCloseSplitPane = vi.fn()
-    const { container } = renderMenu({ onCloseSplitPane })
-    act(() => getButton(container, 'Close split pane').click())
-    expect(onCloseSplitPane).toHaveBeenCalledOnce()
+  it('offers Sync Session Name only when the tab has a session to sync', () => {
+    const withSession = renderMenu({ onSyncSessionName: vi.fn() })
+    expect(getButton(withSession.container, 'Sync Session Name')).toBeInstanceOf(HTMLButtonElement)
 
-    expect(renderMenu().container.textContent).not.toContain('Close split pane')
+    // No handler means no AI Vault agent session on this tab, so the item is hidden
+    // rather than shown as a no-op.
+    const withoutSession = renderMenu()
+    expect(withoutSession.container.textContent).not.toContain('Sync Session Name')
+  })
+
+  it('invokes the sync handler for this tab', () => {
+    const onSyncSessionName = vi.fn()
+    const { container } = renderMenu({ onSyncSessionName })
+
+    getButton(container, 'Sync Session Name').click()
+
+    expect(onSyncSessionName).toHaveBeenCalledTimes(1)
   })
 })

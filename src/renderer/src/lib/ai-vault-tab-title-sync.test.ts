@@ -13,7 +13,7 @@ import {
   batchAiVaultTitleRequests,
   settleAiVaultTitleRequestBatches
 } from './ai-vault-tab-title-batches'
-import { startAiVaultTabTitleSync } from './ai-vault-tab-title-sync'
+import { refreshAiVaultTabTitle, startAiVaultTabTitleSync } from './ai-vault-tab-title-sync'
 import type { AppState } from '@/store/types'
 
 function terminalTab(worktreeId: string, aiVaultTitle?: TerminalTab['aiVaultTitle']): TerminalTab {
@@ -452,5 +452,82 @@ describe('AI Vault tab title sync', () => {
     expect(groups).toHaveLength(2)
     expect(groups[0]!.map((entry) => entry.agent)).toEqual(['claude', 'codex'])
     expect(groups[1]!.map((entry) => entry.agent)).toEqual(['omp', 'pi'])
+  })
+
+  describe('refreshAiVaultTabTitle', () => {
+    it('replaces a stale stored name with the provider transcript\u2019s current one', async () => {
+      const store = makeState({
+        executionHostId: 'ssh:dev-box',
+        worktreeId: 'worktree-1',
+        path: '/workspace/albacore'
+      })
+      store.getState().setAiVaultTabTitle('tab-1', {
+        agent: 'codex',
+        sessionId: 'codex-session',
+        title: 'Stale name Orca cached earlier'
+      })
+      const resolveSessionTitles = vi.fn(async () =>
+        titleResult('codex', 'Renamed in the transcript')
+      )
+
+      await expect(
+        refreshAiVaultTabTitle({ ...store, resolveSessionTitles, tabId: 'tab-1' })
+      ).resolves.toBe(true)
+
+      expect(resolveSessionTitles).toHaveBeenCalledWith({
+        executionHostScope: 'ssh:dev-box',
+        requests: [
+          {
+            agent: 'codex',
+            sessionId: 'codex-session',
+            transcriptPath: '/sessions/codex.jsonl'
+          }
+        ]
+      })
+      expect(store.getState().tabsByWorktree['worktree-1'][0]?.aiVaultTitle).toEqual({
+        agent: 'codex',
+        sessionId: 'codex-session',
+        title: 'Renamed in the transcript'
+      })
+    })
+
+    it('keeps the stored name when the host answers with no title', async () => {
+      const store = makeState({
+        executionHostId: 'ssh:dev-box',
+        worktreeId: 'worktree-1',
+        path: '/workspace/albacore'
+      })
+      store.getState().setAiVaultTabTitle('tab-1', {
+        agent: 'codex',
+        sessionId: 'codex-session',
+        title: 'Keep me'
+      })
+
+      await expect(
+        refreshAiVaultTabTitle({
+          ...store,
+          // Why: a host without the session, an unreadable transcript, or a rejected
+          // request all answer with an empty list rather than throwing.
+          resolveSessionTitles: async () => ({ titles: [] }),
+          tabId: 'tab-1'
+        })
+      ).resolves.toBe(false)
+
+      expect(store.getState().tabsByWorktree['worktree-1'][0]?.aiVaultTitle?.title).toBe('Keep me')
+    })
+
+    it('answers false for a tab with no agent session, without asking the host', async () => {
+      const store = makeState({
+        executionHostId: 'ssh:dev-box',
+        worktreeId: 'worktree-1',
+        path: '/workspace/albacore'
+      })
+      const resolveSessionTitles = vi.fn(async () => titleResult('codex', 'Unused'))
+
+      await expect(
+        refreshAiVaultTabTitle({ ...store, resolveSessionTitles, tabId: 'no-such-tab' })
+      ).resolves.toBe(false)
+      expect(resolveSessionTitles).not.toHaveBeenCalled()
+    })
   })
 })

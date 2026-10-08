@@ -18577,7 +18577,9 @@
       "bar": {
         "SortableTabContextMenu": {
           "switchToTerminalView": "Continue with Terminal Agent",
-          "switchToChatView": "Continue in Chat UI"
+          "switchToChatView": "Continue in Chat UI",
+          "closeTabsToLeft": "Close Tabs To The Left",
+          "syncSessionName": "Sync Session Name"
         },
         "BrowserTab": {
           "closeOthers": "Close Others",

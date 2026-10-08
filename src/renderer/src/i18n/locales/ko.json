@@ -18304,7 +18304,9 @@
       "bar": {
         "SortableTabContextMenu": {
           "switchToTerminalView": "터미널 에이전트로 계속하기",
-          "switchToChatView": "채팅 UI에서 계속하기"
+          "switchToChatView": "채팅 UI에서 계속하기",
+          "closeTabsToLeft": "왼쪽으로 탭 닫기",
+          "syncSessionName": "세션 이름 동기화"
         },
         "BrowserTab": {
           "closeOthers": "다른 탭 닫기",
