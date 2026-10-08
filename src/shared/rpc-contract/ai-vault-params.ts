@@ -2,7 +2,10 @@ import { z } from 'zod'
 import { parseExecutionHostId } from '../execution-host'
 import { AI_VAULT_AGENTS, AI_VAULT_SCOPE_PATHS_MAX_COUNT } from '../ai-vault-types'
 import { OptionalBoolean } from './rpc-param-primitives'
-import { AI_VAULT_SESSION_TITLE_REQUEST_MAX_COUNT } from '../ai-vault-session-title'
+import {
+  AI_VAULT_SESSION_TITLE_AGENTS,
+  AI_VAULT_SESSION_TITLE_REQUEST_MAX_COUNT
+} from '../ai-vault-session-title'
 
 // Why: bound limit + scopePaths so a client cannot force an unbounded scan.
 // Each scopePath is a host-local match prefix (validated/capped, never used for
@@ -65,7 +68,7 @@ export const AiVaultSessionTitlesParams = z.object({
   requests: z
     .array(
       z.object({
-        agent: z.enum(['claude', 'codex']),
+        agent: z.enum(AI_VAULT_SESSION_TITLE_AGENTS),
         sessionId: z.string().min(1).max(512),
         transcriptPath: z.string().min(1).max(32_768).optional()
       })

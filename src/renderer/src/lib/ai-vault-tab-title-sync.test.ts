@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { AiVaultSessionTitlesResult } from '../../../shared/ai-vault-session-title'
+import type {
+  AiVaultSessionTitle,
+  AiVaultSessionTitlesResult
+} from '../../../shared/ai-vault-session-title'
 import { resolveTerminalTabTitle } from '../../../shared/tab-title-resolution'
 import type { TerminalTab } from '../../../shared/terminal-tab-types'
 import {
@@ -27,12 +30,15 @@ function terminalTab(worktreeId: string, aiVaultTitle?: TerminalTab['aiVaultTitl
   }
 }
 
-function titleResult(agent: 'claude' | 'codex', title: string): AiVaultSessionTitlesResult {
+function titleResult(
+  agent: AiVaultSessionTitle['agent'],
+  title: string
+): AiVaultSessionTitlesResult {
   return { titles: [{ agent, sessionId: `${agent}-session`, title }] }
 }
 
 function makeState(args: {
-  agent?: 'claude' | 'codex'
+  agent?: AiVaultSessionTitle['agent']
   aiVaultTitle?: TerminalTab['aiVaultTitle']
   executionHostId: 'ssh:dev-box' | 'runtime:server-1'
   sleeping?: boolean
@@ -167,7 +173,7 @@ function makeState(args: {
 }
 
 describe('AI Vault tab title sync', () => {
-  it.each(['claude', 'codex'] as const)(
+  it.each(['claude', 'codex', 'pi', 'omp'] as const)(
     'projects the canonical %s AI Vault session title',
     async (agent) => {
       const store = makeState({
@@ -419,5 +425,32 @@ describe('AI Vault tab title sync', () => {
     completions[1]!()
     completions[2]!()
     await pending
+  })
+
+  it('keeps the released agent tier apart from the widened one', () => {
+    const request = (
+      agent: AiVaultTitleRequest['agent'],
+      executionHostId: AiVaultTitleRequest['executionHostId'],
+      index: number
+    ): AiVaultTitleRequest => ({
+      agent,
+      executionHostId,
+      providerSession: { key: 'session_id', id: `session-${index}` },
+      refresh: true,
+      tabId: `tab-${index}`,
+      worktreeId: `worktree-${index}`
+    })
+    const groups = batchAiVaultTitleRequests([
+      request('claude', 'runtime:server-1', 1),
+      request('omp', 'runtime:server-1', 2),
+      request('pi', 'runtime:server-1', 3),
+      request('codex', 'runtime:server-1', 4)
+    ])
+
+    // Why split: an older host's closed `agent` enum rejects the whole request, so a
+    // mixed batch would lose the claude/codex titles along with the widened ones.
+    expect(groups).toHaveLength(2)
+    expect(groups[0]!.map((entry) => entry.agent)).toEqual(['claude', 'codex'])
+    expect(groups[1]!.map((entry) => entry.agent)).toEqual(['omp', 'pi'])
   })
 })
