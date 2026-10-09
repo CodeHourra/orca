@@ -94,14 +94,7 @@ export function setupContextualCopy({
       return
     }
 
-    const contextualCopyText = getContextualCopyText()
-    if (!contextualCopyText) {
-      copyHintNode.style.display = 'none'
-      copyHintWidgetPosition = null
-      editorInstance.layoutContentWidget(copyHintWidget)
-      return
-    }
-
+    // Why: an already-copied selection must not re-extract its text on every tick.
     if (lastCopiedSelectionKey !== null && lastCopiedSelectionKey === getSelectionKey()) {
       copyHintNode.style.display = 'none'
       copyHintWidgetPosition = null
