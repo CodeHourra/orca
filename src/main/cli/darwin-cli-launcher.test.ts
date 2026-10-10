@@ -2,7 +2,7 @@ import { copyFile, mkdir, mkdtemp, realpath, rm, symlink, writeFile } from 'node
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { expect, it } from 'vitest'
-import { runProcess } from '../../shared/child-process/run-process'
+import { runProcess } from '@orca/process-host'
 
 it.skipIf(process.platform !== 'darwin').each(['Orca', 'AgentIDE'])(
   'launches the declared %s executable through the installed CLI symlink',
