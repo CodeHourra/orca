@@ -10,26 +10,25 @@ import {
 } from '@/lib/pane-manager/client-hosted-browser-row-state'
 import { i18n } from '@/i18n/i18n'
 import type { TabBarItem } from './tab-bar-item-model'
-import type { TerminalTab } from '../../../../shared/terminal-tab-types'
 import type { WorkspaceVisibleTabType } from '../../../../shared/tab-types'
+import type { AgentType } from '../../../../shared/agent-status-types'
 import {
   renderTabBarItems,
   type TabBarItemSurfaceProps,
   type TabBarItemSurfaceRuntime
 } from './tab-bar-item-surface'
 import { useTabBarItemActions } from './use-tab-bar-item-actions'
-import { useAppStore } from '../../store'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
 type TabProps = {
   tab?: { id: string; title: string }
-  displayTitle?: string
+  agent?: string | null
+  nativeChat?: { sessionId: string; agent: string | undefined }
   isActive: boolean
   isPinned: boolean
   onActivate: (id: string) => void
   onDuplicate?: () => void
-  onSyncSessionName?: () => void
   gitStatus?: string | null
 }
 
@@ -59,13 +58,13 @@ vi.mock('./EditorFileTab', () => ({
 function buildItems({
   terminalPinned = false,
   browserTitle = 'Example',
-  terminalTitle = 'zsh',
-  terminalExtra = {}
+  sessionLabel = 'Session',
+  sessionAgent
 }: {
   terminalPinned?: boolean
   browserTitle?: string
-  terminalTitle?: string
-  terminalExtra?: Partial<TerminalTab>
+  sessionLabel?: string
+  sessionAgent?: AgentType
 } = {}): TabBarItem[] {
   return [
     {
@@ -77,13 +76,12 @@ function buildItems({
         id: 'terminal-1',
         ptyId: null,
         worktreeId: 'wt-1',
-        title: terminalTitle,
+        title: 'zsh',
         generatedTitle: 'Fix the login bug',
         customTitle: null,
         color: null,
         sortOrder: 0,
-        createdAt: 0,
-        ...terminalExtra
+        createdAt: 0
       }
     },
     {
@@ -131,7 +129,8 @@ function buildItems({
         groupId: 'group-1',
         worktreeId: 'wt-1',
         contentType: 'agent-session',
-        label: 'Session',
+        ...(sessionAgent ? { agentSessionAgent: sessionAgent } : {}),
+        label: sessionLabel,
         customLabel: null,
         color: null,
         sortOrder: 3,
@@ -147,9 +146,8 @@ type StripInputs = {
   managedBrowserCreationEnabled?: boolean
   terminalPinned?: boolean
   browserTitle?: string
-  terminalTitle?: string
-  terminalExtra?: Partial<TerminalTab>
-  titleAgentContextByTabId?: TabBarItemSurfaceRuntime['tabTitleAgentContextByTabId']
+  sessionLabel?: string
+  sessionAgent?: AgentType
   activeTabType?: WorkspaceVisibleTabType
   activeClientHostedBrowserRowId?: string | null
   statusByRelativePath?: TabBarItemSurfaceRuntime['statusByRelativePath']
@@ -161,9 +159,8 @@ function Strip({
   managedBrowserCreationEnabled = false,
   terminalPinned,
   browserTitle,
-  terminalTitle,
-  terminalExtra,
-  titleAgentContextByTabId = EMPTY_TITLE_AGENT_CONTEXT,
+  sessionLabel,
+  sessionAgent,
   activeTabType = 'terminal',
   activeClientHostedBrowserRowId = null,
   statusByRelativePath = STATUS_BY_RELATIVE_PATH
@@ -182,14 +179,15 @@ function Strip({
     generatedTabTitlesEnabled,
     unifiedTabByVisibleId: new Map(),
     tabAgentTypesByTabId: {},
-    tabTitleAgentContextByTabId: titleAgentContextByTabId,
     nativeChatTabWideFallbackUnsafeTabsById: {},
     nativeChatTranscriptIsLocalReadable: false,
     managedBrowserCreationEnabled,
-    statusByRelativePath
+    statusByRelativePath,
+    tabTitleAgentContextByTabId: {}
   }
   const actions = useTabBarItemActions({
     props: {
+      worktreeId: 'wt-1',
       onActivate,
       onActivateFile: onActivate,
       onActivateBrowserTab: onActivate,
@@ -208,7 +206,7 @@ function Strip({
   return (
     <>
       {renderTabBarItems({
-        items: buildItems({ terminalPinned, browserTitle, terminalTitle, terminalExtra }),
+        items: buildItems({ terminalPinned, browserTitle, sessionLabel, sessionAgent }),
         props,
         runtime,
         actions,
@@ -221,8 +219,6 @@ function Strip({
 }
 
 const NOOP = (): void => {}
-const EMPTY_TITLE_AGENT_CONTEXT: TabBarItemSurfaceRuntime['tabTitleAgentContextByTabId'] =
-  Object.freeze({})
 const STATUS_BY_RELATIVE_PATH: TabBarItemSurfaceRuntime['statusByRelativePath'] = new Map()
 const TAB_IDS = ['terminal-1', 'browser-1', 'file-1', 'session-1']
 let root: Root | null = null
@@ -259,7 +255,6 @@ afterEach(() => {
   root = null
   tabRenders.length = 0
   clearClientHostedBrowserRowSelection()
-  useAppStore.setState({ agentStatusByPaneKey: {}, tabsByWorktree: {} })
 })
 
 describe('tab strip rows', () => {
@@ -315,46 +310,6 @@ describe('tab strip rows', () => {
     expect(lastRender('terminal-1').tab?.title).toBe('Fix the login bug')
   })
 
-  it('vets the display label against the agent context while leaving tab.title raw for identity', () => {
-    const terminalExtra: Partial<TerminalTab> = { defaultTitle: 'Terminal 1' }
-    renderStrip({
-      terminalTitle: '⠋ Claude Code',
-      terminalExtra,
-      titleAgentContextByTabId: { 'terminal-1': { agentType: 'claude', providerSessionId: 's-1' } }
-    })
-
-    expect(lastRender('terminal-1').displayTitle).toBe('Terminal 1')
-    expect(lastRender('terminal-1').tab?.title).toBe('⠋ Claude Code')
-  })
-
-  it('hands the tab context menu a session-name sync handler only when the pane has one', () => {
-    renderStrip()
-    expect(lastRender('terminal-1').onSyncSessionName).toBeUndefined()
-
-    // The pane's agent session is what makes the sync meaningful; the row reads it
-    // from the same store the background title sync does.
-    act(() => {
-      useAppStore.setState({
-        agentStatusByPaneKey: {
-          'terminal-1:leaf-1': {
-            state: 'done',
-            prompt: '',
-            updatedAt: 1,
-            stateStartedAt: 1,
-            stateHistory: [],
-            agentType: 'claude',
-            paneKey: 'terminal-1:leaf-1',
-            tabId: 'terminal-1',
-            worktreeId: 'wt-1',
-            providerSession: { key: 'session_id', id: 's-1', transcriptPath: '/s/x.jsonl' }
-          }
-        }
-      })
-    })
-
-    expect(typeof lastRender('terminal-1').onSyncSessionName).toBe('function')
-  })
-
   it('re-renders a browser tab when duplicating becomes available', () => {
     renderStrip()
     expect(lastRender('browser-1').onDuplicate).toBeUndefined()
@@ -400,6 +355,25 @@ describe('tab strip rows', () => {
     renderStrip({ statusByRelativePath: new Map([['notes.md', 'modified']]) })
     expect(lastRender('file-1').gitStatus).toBe('modified')
     expect(tabRenders).toHaveLength(TAB_IDS.length + 1)
+  })
+
+  it.each([
+    'Hermes automation deprecation',
+    'Claude Code review',
+    'Review Grok usage',
+    'OpenCode launch-flow design'
+  ])('shows a native chat with its own provider when its name is "%s"', (sessionLabel) => {
+    renderStrip({ sessionLabel, sessionAgent: 'codex' })
+
+    expect(lastRender('session-1').tab?.title).toBe(sessionLabel)
+    expect(lastRender('session-1').agent).toBe('codex')
+    expect(lastRender('session-1').nativeChat).toEqual({ sessionId: 'session-1', agent: 'codex' })
+  })
+
+  it('shows no agent for a native chat whose provider is not recorded', () => {
+    renderStrip({ sessionLabel: 'Hermes automation deprecation' })
+
+    expect(lastRender('session-1').agent).toBeNull()
   })
 
   it.each(TAB_IDS)('retires a client-hosted row selection when %s is activated', (tabId) => {

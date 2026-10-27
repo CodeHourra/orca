@@ -68,6 +68,7 @@ export function useTerminalWatcherEffects(controller: TerminalWatcherController)
     activityTerminalPortals,
     anyMountedWorktreeHasLayout,
     backgroundMountRevision,
+    createTab,
     effectiveParkedTerminalWorktreeIds,
     evictionExemptTerminalTabIds,
     getEffectiveLayoutForWorktree,

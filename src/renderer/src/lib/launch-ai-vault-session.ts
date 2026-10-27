@@ -114,15 +114,18 @@ export function launchAiVaultSessionInNewTab(args: {
         launch_source: 'sidebar',
         request_kind: 'resume'
       }
-    }
+    },
+    // Why: the claim must ride tab creation — the resumed shell is spawned with the tab.
+    ...(args.providerSession
+      ? {
+          automaticResumeClaim: {
+            worktreeId: args.worktreeId,
+            launchAgent: args.agent,
+            providerSession: args.providerSession
+          }
+        }
+      : {})
   })
-  if (args.providerSession) {
-    store.claimAutomaticAgentResume(tab.id, {
-      worktreeId: args.worktreeId,
-      launchAgent: args.agent,
-      providerSession: args.providerSession
-    })
-  }
   seedAiVaultResumeTabTitle({
     agent: args.agent,
     tabId: tab.id,

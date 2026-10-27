@@ -27,6 +27,7 @@ const store = {
   projects,
   repos,
   settings: {} as {
+    floatingTerminalEnabled?: boolean
     localWindowsRuntimeDefault?: { kind: 'windows-host' } | { kind: 'wsl'; distro: string }
   },
   // oxlint-disable-next-line typescript/consistent-type-assertions -- SAFETY: an empty test catalog; rows are typed below.
@@ -89,7 +90,11 @@ describe('forkAgentSessionFromPane', () => {
       }
     ]
     store.repos = [{ id: 'repo-1', kind: 'git' }]
-    store.settings = { localWindowsRuntimeDefault: { kind: 'windows-host' } }
+    store.settings = {
+      // Why: the expand-selection fork is gated on Floating Workspace.
+      floatingTerminalEnabled: true,
+      localWindowsRuntimeDefault: { kind: 'windows-host' }
+    }
     store.worktreesByRepo = {
       'repo-1': [
         { id: 'wt-1', repoId: 'repo-1', path: 'C:\\repo', projectId: 'repo-1', hostId: 'local' }
@@ -165,7 +170,7 @@ describe('forkAgentSessionFromPane', () => {
   })
 
   it('does not launch a local explanation fork for an SSH workspace', async () => {
-    store.repos = [{ id: 'repo-1', kind: 'git', connectionId: 'ssh-1' }]
+    store.repos = [{ ...store.repos[0], connectionId: 'ssh-1' }]
     store.agentStatusByPaneKey = {
       [`tab-1:${LEAF_ID}`]: { agentType: 'codex' }
     }

@@ -111,7 +111,9 @@ export function getTabLayoutSignature(
   const label = tabItemLabel(
     item,
     generatedTitlesEnabled,
-    item.type === 'agent-session' ? projectedStructuredChatTabSavedName(item.data, chatNames) : null,
+    item.type === 'agent-session'
+      ? projectedStructuredChatTabSavedName(item.data, chatNames)
+      : null,
     owner
   )
   if (item.type === 'terminal') {

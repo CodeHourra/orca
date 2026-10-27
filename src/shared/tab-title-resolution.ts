@@ -11,13 +11,8 @@ export type TabTitleAgentContext = { agentType: AgentType; providerSessionId?: s
 export function resolveTerminalTabTitle(
   tab: Pick<
     TerminalTab,
-    | 'customTitle'
-    | 'quickCommandLabel'
-    | 'aiVaultTitle'
-    | 'generatedTitle'
-    | 'title'
-    | 'defaultTitle'
-  >,
+    'quickCommandLabel' | 'aiVaultTitle' | 'generatedTitle' | 'title' | 'defaultTitle'
+  > & { customTitle?: string | null },
   generatedTitlesEnabled: boolean,
   fallback = '',
   owner?: TabTitleAgentContext

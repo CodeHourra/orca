@@ -5,10 +5,9 @@ import { shallow } from 'zustand/shallow'
 import type { GitFileStatus } from '../../../../shared/git-status-types'
 import type { TabTitleAgentContext } from '../../../../shared/tab-title-resolution'
 import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
-import type { TerminalTab } from '../../../../shared/terminal-tab-types'
-import { isTuiAgent } from '../../../../shared/tui-agent-config'
 import type { OpenFile } from '../../store/slices/editor'
 import SortableTab from './SortableTab'
+import TerminalSortableTab from './TerminalSortableTab'
 import EditorFileTab from './EditorFileTab'
 import BrowserTab from './BrowserTab'
 import type { DropIndicator } from './drop-indicator'
@@ -19,6 +18,7 @@ import {
   useStructuredChatTabConversationName,
   useStructuredChatTabNamingFailure
 } from '@/runtime/structured-conversation-name'
+import { agentTypeToIconAgent } from '@/lib/agent-status'
 import { useAiVaultSessionNameSync } from './use-ai-vault-session-name-sync'
 
 // Why only values and `actions`: anything a tab draws must be a compared prop, or a skipped render shows it stale.
@@ -40,6 +40,7 @@ type TabBarItemRowProps = {
   /** Unified tab whose view mode the terminal tab toggles; absent when it has none. */
   viewModeTabId: string | undefined
   canDuplicate: boolean
+  canCloseSplitPane: boolean
   /** This editor tab's own status, so a git status write re-renders only the tabs it changed. */
   gitStatus: GitFileStatus | null
   /** The agent hosting this terminal tab, so its title mirrors the agent row. */
@@ -63,6 +64,7 @@ function TabBarItemRow({
   isChatView,
   viewModeTabId,
   canDuplicate,
+  canCloseSplitPane,
   gitStatus,
   titleAgentContext
 }: TabBarItemRowProps): React.JSX.Element {
@@ -82,7 +84,12 @@ function TabBarItemRow({
     unifiedTabId: item.unifiedTabId,
     visibleTabId: item.id,
     tabType: item.type,
-    label: getTabDragLabel(item, generatedTabTitlesEnabled, useAppStore.getState(), titleAgentContext),
+    label: getTabDragLabel(
+      item,
+      generatedTabTitlesEnabled,
+      useAppStore.getState(),
+      titleAgentContext
+    ),
     iconPath: item.type === 'editor' ? item.data.filePath : undefined,
     color: item.type === 'terminal' ? (item.data.color ?? null) : null
   }
@@ -93,6 +100,7 @@ function TabBarItemRow({
     hasTabsToLeft,
     tabCount,
     onTogglePin: () => actions.togglePinned(item),
+    onCloseSplitPane: canCloseSplitPane ? actions.closeSplitPane : undefined,
     dragData,
     dropIndicator,
     includeTopTabBorder
@@ -110,7 +118,7 @@ function TabBarItemRow({
   }
   if (item.type === 'terminal') {
     return (
-      <SortableTab
+      <TerminalSortableTab
         {...sortableTabProps}
         tab={resolveTerminalItemTab(item.data, generatedTabTitlesEnabled)}
         displayTitle={resolveTerminalTabTitle(
@@ -119,39 +127,37 @@ function TabBarItemRow({
           item.data.title,
           titleAgentContext
         )}
+        onSyncSessionName={onSyncSessionName}
         canToggleViewMode={canToggleViewMode}
         isChatView={isChatView}
         onToggleViewMode={viewModeTabId ? () => actions.toggleViewMode(viewModeTabId) : undefined}
         isExpanded={isExpanded}
         onActivate={actions.activateTerminal}
         onToggleExpand={actions.togglePaneExpand}
-        onSyncSessionName={onSyncSessionName}
       />
     )
   }
   if (item.type === 'agent-session') {
-    const structuredTab: TerminalTab = {
-      id: item.id,
-      ptyId: null,
-      worktreeId,
-      title: conversationName ?? item.data.label,
-      customTitle: item.data.customLabel,
-      color: item.data.color,
-      sortOrder: item.data.sortOrder,
-      createdAt: item.data.createdAt,
-      ...(isTuiAgent(item.data.agentSessionAgent)
-        ? { launchAgent: item.data.agentSessionAgent }
-        : {})
-    }
+    const nativeChat = { sessionId: item.data.entityId, agent: item.data.agentSessionAgent }
     return (
       <SortableTab
         {...sortableTabProps}
-        tab={structuredTab}
+        tab={{
+          id: item.id,
+          worktreeId,
+          title: conversationName ?? item.data.label,
+          customTitle: item.data.customLabel,
+          color: item.data.color
+        }}
+        // Why: a chat records its provider, so its title or turn state must never re-identify it.
+        agent={agentTypeToIconAgent(nativeChat.agent)}
+        displayTitle={conversationName ?? item.data.label}
         isExpanded={false}
         onActivate={actions.activateAgentSession}
         onToggleExpand={() => {}}
         canSplitTerminal={false}
-        nativeChat={{ sessionId: item.data.entityId, agent: item.data.agentSessionAgent }}
+        nativeChat={nativeChat}
+        // A tab the user named does not show the generated name, so neither does its failure.
         namingFailure={item.data.customLabel ? null : namingFailure}
       />
     )

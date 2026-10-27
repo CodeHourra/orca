@@ -215,6 +215,7 @@ describe('ensureWorktreeHasInitialTerminal', () => {
     expect(createTab).toHaveBeenCalledTimes(1)
     expect(createTab).toHaveBeenCalledWith('wt-1', undefined, undefined, {
       pendingActivationSpawn: true,
+      pendingStartup: { command: 'pnpm dev' },
       recordInteraction: false
     })
     expect(createdTabStartups(store)['tab-1']).toEqual({ command: 'pnpm dev' })

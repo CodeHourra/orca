@@ -26,13 +26,27 @@ const mocks = vi.hoisted(
 vi.mock('@/store', () => ({
   useAppStore: (
     selector: (state: {
-      agentStatusByPaneKey: Record<string, never>
+      agentStatusByPaneKey: Record<string, unknown>
       sleepingAgentSessionsByPaneKey: Record<string, never>
       paneForegroundAgentByPaneKey: Record<string, never>
     }) => unknown
   ) =>
     selector({
-      agentStatusByPaneKey: {},
+      // Why: the copy-session action is gated on the pane owning a live provider session.
+      agentStatusByPaneKey: {
+        'tab-7:11111111-1111-4111-8111-111111111111': {
+          state: 'done',
+          prompt: '',
+          updatedAt: 1,
+          stateStartedAt: 1,
+          stateHistory: [],
+          agentType: 'codex',
+          paneKey: 'tab-7:11111111-1111-4111-8111-111111111111',
+          tabId: 'tab-7',
+          worktreeId: 'wt-1',
+          providerSession: { key: 'session_id', id: 's-1', transcriptPath: '/s/x.jsonl' }
+        }
+      },
       sleepingAgentSessionsByPaneKey: {},
       paneForegroundAgentByPaneKey: {}
     })
@@ -134,6 +148,7 @@ describe('TerminalPaneNativeChatPortal', () => {
       chatPaneResolvedAgent: 'codex',
       tabId: 'tab-7',
       resolveAgentForLeaf: () => 'codex',
+      paneTitles: {},
       contextMenu: { runForPane, onExplainSelection, onCopyAgentSessionId }
     } as unknown as TerminalPaneController
 
