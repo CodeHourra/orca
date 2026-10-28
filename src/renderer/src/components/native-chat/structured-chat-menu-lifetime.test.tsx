@@ -38,7 +38,8 @@ function Host({ index }: { index: number }) {
     ownerWorktreeId: 'owner',
     rootRef,
     composerRef: createRef(),
-    questionAnswerInputRef: createRef()
+    questionAnswerInputRef: createRef(),
+    messages: []
   })
   return (
     <div ref={rootRef} data-testid={`host-${index}`} {...commands}>

@@ -7,6 +7,8 @@ import { resolveStructuredSessionOrcaSessionId } from '../../runtime/structured-
 import type { NativeChatStructuredViewProps } from './native-chat-view-types'
 import type { NativeChatHandOff } from './use-native-chat-hand-off'
 import type { NativeChatComposerHandle } from './NativeChatComposer'
+import { buildNativeChatForkTranscript } from '@/lib/agent-session-fork-context'
+import type { NativeChatMessage } from '../../../../shared/native-chat-types'
 import { useNativeChatPasteBridge } from './use-native-chat-paste-bridge'
 import {
   emptyNativeChatContextMenuActions,
@@ -23,7 +25,7 @@ export function useStructuredNativeChatPaneCommands({
   rootRef,
   composerRef,
   questionAnswerInputRef,
-  explanationContext,
+  messages,
   ...menuTargets
 }: {
   pane: Omit<NativeChatStructuredViewProps, 'mode'>
@@ -32,11 +34,13 @@ export function useStructuredNativeChatPaneCommands({
   rootRef: RefObject<HTMLDivElement | null>
   composerRef: RefObject<NativeChatComposerHandle | null>
   questionAnswerInputRef: RefObject<HTMLInputElement | null>
-  explanationContext?: string
+  /** Drives the Expand-on-this prompt's surrounding transcript. */
+  messages: readonly NativeChatMessage[]
 } & NativeChatContextMenuTargetArgs) {
   const { tabId, groupId, isVisible, sessionId, target, onExplainSelection } = pane
   const terminalPaneActions = pane.contextMenuActions
   const keybindings = useAppStore((state) => state.keybindings)
+  const explanationContext = useMemo(() => buildNativeChatForkTranscript(messages), [messages])
   const resolveOrcaSessionId = useMemo(
     () =>
       isOrcaSessionId(sessionId)

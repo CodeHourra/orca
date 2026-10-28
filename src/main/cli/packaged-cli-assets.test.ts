@@ -1,5 +1,6 @@
 import { execFile, spawn } from 'node:child_process'
 import { globSync } from 'node:fs'
+import { realpath } from 'node:fs/promises'
 import {
   copyFile,
   cp,
@@ -278,6 +279,12 @@ printf 'arg=%s\\n' "$@"
         await mkdir(dirname(electronPath), { recursive: true })
         await mkdir(dirname(cliPath), { recursive: true })
         await copyFile(launcherFixture.asset, launcherPath)
+        if (launcherFixture.name === 'macOS') {
+          await writeFile(
+            join(appDir, 'Contents', 'Info.plist'),
+            '<plist version="1.0"><dict><key>CFBundleExecutable</key><string>Orca</string></dict></plist>'
+          )
+        }
         await writeFile(cliPath, '', 'utf8')
         await writeFile(
           electronPath,
@@ -302,6 +309,8 @@ node -e 'console.log(JSON.stringify({
             NODE_REPL_EXTERNAL_MODULE: 'external-loader'
           }
         })
+        // The macOS launcher resolves the bundle through `cd -P`; /tmp is a symlink there.
+        const expectedCliPath = await realpath(cliPath)
         const payload = JSON.parse(result.stdout) as {
           argv: string[]
           runAsNode: string
@@ -311,7 +320,11 @@ node -e 'console.log(JSON.stringify({
           orcaNodeReplExternalModule: string | null
         }
 
-        expect(payload.argv).toEqual([cliPath, '--help', 'two words'])
+        expect([await realpath(payload.argv[0]), ...payload.argv.slice(1)]).toEqual([
+          expectedCliPath,
+          '--help',
+          'two words'
+        ])
         expect(payload.runAsNode).toBe('1')
         // Hide node options from Electron's bootstrap but preserve them for the CLI.
         expect(payload.nodeOptions).toBeNull()

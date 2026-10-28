@@ -174,6 +174,7 @@ function StructuredChatTab({
     rootRef: createRef<HTMLDivElement>(),
     composerRef: createRef<NativeChatComposerHandle>(),
     questionAnswerInputRef: createRef<HTMLInputElement>(),
+    messages: [],
     ...(inWorkspace
       ? {
           fileLinkContext: {
