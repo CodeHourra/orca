@@ -3,10 +3,10 @@ import type {
   WorktreeSetupLaunch
 } from '../../../shared/worktree/launch-types'
 import type { ExecutionHostId } from '../../../shared/execution-host'
-import type { FolderWorkspace } from '../../../shared/folder-workspace-types'
+import type { FolderWorkspace } from '../../../shared/folder-workspaces/folder-workspace-types'
 import { folderWorkspaceKey } from '../../../shared/workspace-scope'
 import { shouldAutoCreateInitialTerminal } from '@/components/terminal/initial-terminal'
-import { isTerminalWorkspaceEmptiedOnPurpose } from '../../../shared/closed-terminal-tab-tombstones'
+import { isTerminalWorkspaceEmptiedOnPurpose } from '../../../shared/workspace-layout/closed-terminal-tab-tombstones'
 import { shouldSeedWorktreePrimaryTerminal } from '../../../shared/worktree-first-surface'
 import { createSequencedSetupAgentCommands } from '../../../shared/setup-agent-sequencing'
 import { getSetupRunnerCommandPlatformForPath } from '../../../shared/setup-runner-command'
@@ -14,7 +14,7 @@ import { agentKindToTuiAgent } from '../../../shared/agent-kind'
 import { useAppStore } from '@/store'
 import { queueHookCommandsForFirstWorktreeTab } from '@/lib/hook-command-delayed-delivery'
 import { resolveWorkspaceTerminalHostAuthority } from '@/lib/workspace-terminal-host-authority'
-import { seedNativeChatAppliedSessionOptions } from '@/components/native-chat/native-chat-session-option-cache'
+import { seedNativeChatAppliedSessionOptions } from '../../../shared/native-chat/input/native-chat-session-option-cache'
 import type {
   InitialTerminalOptions,
   WorktreeActivationStore
@@ -40,6 +40,7 @@ function getSetupRunnerCommandPlatformForLaunch(setup: WorktreeSetupLaunch): 'wi
 export type GatedEmptyWorkspaceReseedIntent = {
   callerProvidesSurface: boolean
   seedUserDefaultSurface: boolean
+  initialCwd?: string
   executionHostId?: ExecutionHostId
 }
 
@@ -48,7 +49,7 @@ export function reseedGatedEmptyWorkspace(
   workspaceKey: string,
   intent: GatedEmptyWorkspaceReseedIntent
 ): void {
-  const { callerProvidesSurface, seedUserDefaultSurface, executionHostId } = intent
+  const { callerProvidesSurface, seedUserDefaultSurface, executionHostId, initialCwd } = intent
   const state = useAppStore.getState()
   if (
     callerProvidesSurface === true ||
@@ -67,6 +68,7 @@ export function reseedGatedEmptyWorkspace(
     undefined,
     {
       reseedEmptiedWorkspace: true,
+      ...(initialCwd ? { initialCwd } : {}),
       ...(seedUserDefaultSurface ? { seedUserDefaultSurface: true } : {})
     }
   )
@@ -76,7 +78,7 @@ export function ensureFolderWorkspaceInitialTerminal(
   folderWorkspace: FolderWorkspace,
   startup?: WorktreeStartupPayload,
   providesInitialSurface?: boolean,
-  seedUserDefaultSurface?: boolean
+  opts?: Pick<InitialTerminalOptions, 'seedUserDefaultSurface'>
 ): string | null {
   if (providesInitialSurface === true && startup === undefined) {
     return null
@@ -92,7 +94,7 @@ export function ensureFolderWorkspaceInitialTerminal(
     undefined,
     {
       reseedEmptiedWorkspace: providesInitialSurface !== true,
-      ...(seedUserDefaultSurface ? { seedUserDefaultSurface: true } : {})
+      ...opts
     }
   )
   return primaryTabId
@@ -130,6 +132,7 @@ export function ensureWorktreeHasInitialTerminal(
       ...(sequenced.startupEnv ? { env: { ...startup.env, ...sequenced.startupEnv } } : {})
     }
     wrappedSetupCommandStr = sequenced.setupCommand
+    setup = { ...setup, envVars: { ...setup.envVars, ...sequenced.setupEnv } }
   }
 
   const backendStartupTerminalSpawned = opts?.backendStartupTerminalSpawned === true
@@ -267,7 +270,8 @@ export function ensureWorktreeHasInitialTerminal(
           issueCommand,
           defaultTabs,
           { ...opts, seedUserDefaultSurface: false }
-        ) !== null
+        ) !== null,
+      opts.initialCwd
     )
     if (defaultChat) {
       return defaultChat.primaryTabId
@@ -293,6 +297,9 @@ export function ensureWorktreeHasInitialTerminal(
     ...(opts?.activateCreatedTabs === false ? { activate: false } : {}),
     ...(sequencedStartup ? { pendingStartup: sequencedStartup } : {})
   })
+  if (opts?.initialCwd) {
+    store.queueTabInitialCwd(terminalTab.id, opts.initialCwd)
+  }
   if (opts?.activateCreatedTabs !== false) {
     store.setActiveTab(terminalTab.id)
   }

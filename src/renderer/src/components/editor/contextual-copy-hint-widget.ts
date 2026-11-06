@@ -14,15 +14,15 @@ export function createContextualCopyHintNode(): HTMLButtonElement {
 }
 
 export function refreshContextualCopyHintLabel(copyHintNode: HTMLButtonElement): void {
-  const copyContextLabel = translate(
-    'auto.components.editor.setupContextualCopy.copyContext',
-    'Copy context'
+  const label = translate(
+    'auto.components.editor.contextualCopy.copyContextHint',
+    'Copy context {{shortcut}}',
+    {
+      shortcut: formatShortcutLabel('editor.copyContext', useAppStore.getState().keybindings)
+    }
   )
-  copyHintNode.textContent = `${copyContextLabel} ${formatShortcutLabel(
-    'editor.copyContext',
-    useAppStore.getState().keybindings
-  )}`
-  copyHintNode.setAttribute('aria-label', copyContextLabel)
+  copyHintNode.textContent = label
+  copyHintNode.setAttribute('aria-label', label)
 }
 
 export function attachContextualCopyHintPointerDown(

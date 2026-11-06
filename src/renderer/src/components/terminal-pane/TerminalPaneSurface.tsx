@@ -1,10 +1,10 @@
+import { TerminalCrewPortals } from '../orchestration-crew/TerminalCrewPortals'
 import { createPortal } from 'react-dom'
 import { TerminalPaneFileDropOwner } from './TerminalPaneFileDropOwner'
-import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import TerminalSearch from '@/components/TerminalSearch'
 import { DaemonActionDialog } from '@/components/shared/useDaemonActions'
 import { AgentSessionContinuationDialog } from '@/components/agent-session-continuation/AgentSessionContinuationDialog'
-import { WORKSPACE_FILE_PATH_MIME, WORKSPACE_FILE_PATHS_MIME } from '@/lib/workspace-file-drag'
 import CloseTerminalDialog from './CloseTerminalDialog'
 import TerminalContextMenu from './TerminalContextMenu'
 import TerminalPaneHeaderOverlay from './TerminalPaneHeaderOverlay'
@@ -15,7 +15,7 @@ import { TerminalSessionStateSaveFailureDialog } from './TerminalSessionStateSav
 import { LinkActionPopover } from '@/components/link-actions/LinkActionPopover'
 import { TerminalAgentSessionForkDialog } from './TerminalAgentSessionForkDialog'
 import { SessionRestoredBannerPortals } from './SessionRestoredBannerPortals'
-import { handleInternalTerminalFileDrop } from './terminal-drop-handler'
+import { TerminalPaneDropSurface } from './TerminalPaneDropSurface'
 import { TerminalQuickCommandEditorDialog } from './TerminalQuickCommandEditorDialog'
 import { TerminalPaneNativeChatPortal } from './TerminalPaneNativeChatPortal'
 import { TerminalPaneSleepingPortals } from './TerminalPaneSleepingPortals'
@@ -27,9 +27,12 @@ import {
   TerminalPaneSshReconnectPortals
 } from './TerminalPaneRuntimePortals'
 import type { TerminalPaneController } from './use-terminal-pane-controller'
+import { canCloseTerminalPane, terminalPaneCloseLabel } from './terminal-pane-close-affordance'
 import { useAppStore } from '@/store'
 import { getKnownExecutionHostIdForWorktree } from '@/lib/worktree-runtime-owner'
 import { LOCAL_EXECUTION_HOST_ID } from '../../../../shared/execution-host'
+import { useWslHostStartCardReplacesPaneError } from './use-wsl-host-stopped-pane'
+import { terminalPaneMenuAddToChat } from './terminal-pane-menu-copy-actions'
 
 export function TerminalPaneSurface({
   controller
@@ -125,55 +128,32 @@ export function TerminalPaneSurface({
   const paneOnClient = useAppStore(
     (state) => getKnownExecutionHostIdForWorktree(state, worktreeId) === LOCAL_EXECUTION_HOST_ID
   )
+  const errorReplacedByStartCard = useWslHostStartCardReplacesPaneError(
+    worktreeId,
+    activePane
+      ? (paneTransportsRef.current.get(activePane.id)?.getRuntimeEnvironmentId?.() ?? null)
+      : undefined
+  )
 
   return (
     <>
-      <div
-        ref={setContainerRef}
-        className="absolute inset-0 min-h-0 min-w-0"
-        data-terminal-tab-id={tabId}
-        data-terminal-chat-view={effectiveChatViewMode && activePaneIsChatLeaf ? 'true' : undefined}
-        data-terminal-layout-leaf-ids={expectedLayoutLeafIdsAttr}
-        data-pane-title-surface={titleUsesLightSurface ? 'light' : 'dark'}
-        style={terminalContainerStyle}
+      <TerminalPaneDropSurface
+        setContainerRef={setContainerRef}
+        tabId={tabId}
+        chatView={effectiveChatViewMode && activePaneIsChatLeaf}
+        expectedLayoutLeafIdsAttr={expectedLayoutLeafIdsAttr}
+        titleUsesLightSurface={titleUsesLightSurface}
+        containerStyle={terminalContainerStyle}
         onContextMenuCapture={contextMenu.onContextMenuCapture}
         onMouseDownCapture={(event) => {
           contextMenu.onMouseDownCapture(event)
           handlePrimarySelectionMiddleMouseDown(event)
         }}
         onAuxClickCapture={handlePrimarySelectionAuxClick}
-        onDragOver={(event) => {
-          if (
-            event.dataTransfer.types.includes(WORKSPACE_FILE_PATH_MIME) ||
-            event.dataTransfer.types.includes(WORKSPACE_FILE_PATHS_MIME)
-          ) {
-            event.preventDefault()
-            event.dataTransfer.dropEffect = 'copy'
-          }
-        }}
-        onDrop={(event) => {
-          if (
-            !event.dataTransfer.types.includes(WORKSPACE_FILE_PATH_MIME) &&
-            !event.dataTransfer.types.includes(WORKSPACE_FILE_PATHS_MIME)
-          ) {
-            return
-          }
-          event.preventDefault()
-          event.stopPropagation()
-          const manager = managerRef.current
-          if (!manager) {
-            return
-          }
-          void handleInternalTerminalFileDrop({
-            manager,
-            paneTransports: paneTransportsRef.current,
-            worktreeId,
-            tabId,
-            cwd,
-            dataTransfer: event.dataTransfer,
-            dropTarget: event.target
-          })
-        }}
+        managerRef={managerRef}
+        paneTransportsRef={paneTransportsRef}
+        worktreeId={worktreeId}
+        cwd={cwd}
       />
       {managedPanes.map((pane) => (
         <TerminalPaneFileDropOwner
@@ -186,6 +166,7 @@ export function TerminalPaneSurface({
           paneTransportsRef={paneTransportsRef}
         />
       ))}
+      <TerminalCrewPortals controller={controller} />
       <TerminalPaneCodexRestartPortals controller={controller} />
       <AgentLaunchPaneNoticePortal
         refusal={visibleLaunchRefusal}
@@ -194,17 +175,22 @@ export function TerminalPaneSurface({
         pane={activePane}
         tabId={tabId}
       />
-      {/* Let SSH recovery own its strip instead of covering it with the raw connection-error toast. */}
-      {visibleTerminalError && isActive && !showSshReconnectOverlay && activePane
+      {/* Let SSH recovery and a stopped WSL distro's Start own the pane instead of the raw error toast. */}
+      {visibleTerminalError &&
+      isActive &&
+      !showSshReconnectOverlay &&
+      !errorReplacedByStartCard &&
+      activePane
         ? createPortal(
             <TerminalErrorToast
-              error={visibleTerminalError}
+              error={visibleTerminalError.error}
+              resourceLimit={visibleTerminalError.resourceLimit}
               agentId={activeAgentId}
               paneOnClient={paneOnClient}
               onDismiss={dismissTerminalError}
               onRestartDaemon={() => daemonActions.setPending('restart')}
               onRetry={
-                isPaneOwnerRecoveryError(visibleTerminalError)
+                isPaneOwnerRecoveryError(visibleTerminalError.error)
                   ? () =>
                       Promise.resolve(
                         paneTransportsRef.current.get(activePane.id)?.retryRecovery?.() ?? false
@@ -252,13 +238,23 @@ export function TerminalPaneSurface({
         onOpenChange={contextMenu.setOpen}
         menuPoint={contextMenu.point}
         menuOpenedAtRef={contextMenu.menuOpenedAtRef}
-        canClosePane={contextMenu.paneCount > 1}
+        canClosePane={canCloseTerminalPane({
+          paneCount: contextMenu.paneCount,
+          showSplitButton,
+          isTabPinned
+        })}
+        closePaneLabel={terminalPaneCloseLabel(contextMenu.paneCount)}
         canExpandPane={contextMenu.paneCount > 1}
         canEqualizePaneSizes={contextMenu.paneCount > 1 && expandedPaneId === null}
         menuPaneIsExpanded={
           contextMenu.menuPaneId !== null && contextMenu.menuPaneId === expandedPaneId
         }
         onCopy={() => void contextMenu.onCopy()}
+        addToChat={
+          contextMenu.open
+            ? terminalPaneMenuAddToChat(contextMenu.menuPane, tabId, worktreeId)
+            : null
+        }
         onSelectAll={contextMenu.onSelectAll}
         onPaste={() => void contextMenu.onPaste()}
         onSplitRight={contextMenu.onSplitRight}

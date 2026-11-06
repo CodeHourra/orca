@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useAppStore } from '@/store'
-import { isAiVaultTitleAgent } from '../../../../shared/ai-vault-session-title'
+import { isAiVaultTitleAgent } from '../../../../shared/ai-vault/contracts/ai-vault-session-title'
 import { refreshAiVaultTabTitle } from '@/lib/ai-vault-tab-title-sync'
 import { selectTabBarTitleAgentContext } from './tab-title-agent-context'
 import type { TabBarItem } from './tab-bar-item-model'

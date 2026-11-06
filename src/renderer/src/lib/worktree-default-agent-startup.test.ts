@@ -66,7 +66,7 @@ describe('buildDefaultAgentStartupPayload', () => {
     })
 
     expect(startup).toEqual({
-      command: "codex '--dangerously-bypass-approvals-and-sandbox'",
+      command: "codex '-c' 'disable_paste_burst=true' '--dangerously-bypass-approvals-and-sandbox'",
       env: {},
       launchAgent: 'codex',
       launchConfig: {

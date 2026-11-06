@@ -3,7 +3,7 @@ import {
   AI_VAULT_SESSION_TITLE_AGENTS,
   AI_VAULT_SESSION_TITLE_AGENTS_V1,
   isAiVaultTitleAgent
-} from './ai-vault-session-title'
+} from './ai-vault/contracts/ai-vault-session-title'
 
 describe('AI Vault session title agents', () => {
   it('admits the message-graph providers alongside claude and codex', () => {

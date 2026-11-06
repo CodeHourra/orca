@@ -2,7 +2,7 @@ import { memo } from 'react'
 import { useAppStore } from '@/store'
 import { useTranslation } from 'react-i18next'
 import { shallow } from 'zustand/shallow'
-import type { GitFileStatus } from '../../../../shared/git-status-types'
+import type { GitFileStatus } from '../../../../shared/git/status/git-status-types'
 import type { TabTitleAgentContext } from '../../../../shared/tab-title-resolution'
 import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
 import type { OpenFile } from '../../store/slices/editor'
@@ -18,7 +18,8 @@ import {
   useStructuredChatTabConversationName,
   useStructuredChatTabNamingFailure
 } from '@/runtime/structured-conversation-name'
-import { agentTypeToIconAgent } from '@/lib/agent-status'
+import { agentTypeToIconAgent } from '../../../../shared/agent-status/presentation/agent-type-icon-agent'
+import { formatSimulatorTabLabel } from '@/lib/simulator-tab-label'
 import { useAiVaultSessionNameSync } from './use-ai-vault-session-name-sync'
 
 // Why only values and `actions`: anything a tab draws must be a compared prop, or a skipped render shows it stale.
@@ -190,7 +191,7 @@ function TabBarItemRow({
     onCloseAll: actions.closeAllFiles
   }
   if (item.type === 'simulator') {
-    const simulatorLabel = item.data.label || 'Mobile Emulator'
+    const simulatorLabel = formatSimulatorTabLabel(item.data.label)
     const simulatorFile: OpenFile & { tabId: string } = {
       id: item.id,
       tabId: item.id,

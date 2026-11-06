@@ -1,5 +1,5 @@
-import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-title-decoration'
-import type { TerminalTab } from '../../../../shared/terminal-tab-types'
+import { stripLeadingAgentTitleDecoration } from '../../../../shared/agent-status/title/agent-title-decoration'
+import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 
 /** What the strip draws for a terminal or native chat tab; never a source of agent identity. */
 export type SortableTabModel = Pick<

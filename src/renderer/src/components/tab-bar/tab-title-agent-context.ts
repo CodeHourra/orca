@@ -1,6 +1,6 @@
-import type { AgentStatusEntry } from '../../../../shared/agent-status-types'
+import type { AgentStatusEntry } from '../../../../shared/agent-status/contracts/agent-status-types'
 import type { TabTitleAgentContext } from '../../../../shared/tab-title-resolution'
-import type { TerminalLayoutSnapshot } from '../../../../shared/terminal-tab-types'
+import type { TerminalLayoutSnapshot } from '../../../../shared/workspace-layout/terminal-tab-types'
 import { resolveNativeChatActiveLayoutLeafId } from '../native-chat/native-chat-leaf-routing'
 
 export type TabTitleAgentContextByTabId = Record<string, TabTitleAgentContext>

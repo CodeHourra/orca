@@ -5,9 +5,9 @@ import { newAgentLaunchRequestId } from '@/lib/agent-launch-request-id'
 import { buildAgentExplanationForkPrompt } from '@/lib/agent-session-fork-context'
 import { revealFloatingWorkspacePanel } from '@/lib/floating-workspace-panel-reveal'
 import { useAppStore } from '@/store'
-import { makePaneKey } from '../../../../shared/stable-pane-id'
+import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
 import { FLOATING_TERMINAL_WORKTREE_ID } from '../../../../shared/constants'
-import type { TuiAgent } from '../../../../shared/tui-agent'
+import type { TuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent'
 import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
 import { translate } from '@/i18n/i18n'
 import { resolveTuiAgent } from './terminal-agent-session-fork'
@@ -65,6 +65,40 @@ export async function explainAgentSelectionFromPane({
     sourceLabel: makePaneKey(tabId, pane.leafId),
     restoreFocus: () => pane.terminal.focus()
   })
+}
+
+export type ExplainSelectionHandler = (
+  selectedText?: string,
+  agentOverride?: TuiAgent | null,
+  capturedText?: string
+) => Promise<boolean>
+
+export function createExplainSelectionHandler(deps: {
+  resolvePane: () => ManagedPane | null
+  tabId: string
+  worktreeId: string
+  cwdFor: (pane: ManagedPane) => string
+}): ExplainSelectionHandler {
+  return async (
+    selectedText?: string,
+    agentOverride?: TuiAgent | null,
+    capturedText?: string
+  ): Promise<boolean> => {
+    const pane = deps.resolvePane()
+    if (!pane) {
+      return false
+    }
+    return explainAgentSelectionFromPane({
+      pane,
+      tabId: deps.tabId,
+      worktreeId: deps.worktreeId,
+      groupId: null,
+      cwd: deps.cwdFor(pane),
+      selectedText: selectedText ?? pane.terminal.getSelection(),
+      agentOverride,
+      capturedText
+    })
+  }
 }
 
 export async function explainAgentSelection({

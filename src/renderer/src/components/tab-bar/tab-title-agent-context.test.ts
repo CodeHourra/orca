@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import type { AgentProviderSessionMetadata } from '../../../../shared/agent-session-resume'
-import type { AgentStatusEntry, AgentType } from '../../../../shared/agent-status-types'
-import type { TerminalLayoutSnapshot } from '../../../../shared/terminal-tab-types'
+import type { AgentProviderSessionMetadata } from '../../../../shared/agent-session/lifecycle/agent-session-resume'
+import type {
+  AgentStatusEntry,
+  AgentType
+} from '../../../../shared/agent-status/contracts/agent-status-types'
+import type { TerminalLayoutSnapshot } from '../../../../shared/workspace-layout/terminal-tab-types'
 import {
   createTabTitleAgentContextSelector,
   selectTabTitleAgentContextByTabId

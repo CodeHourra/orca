@@ -1,5 +1,5 @@
-import { trimAgentSessionContext } from '../../../shared/agent-session-context-budget'
-import { isTextBlock, type NativeChatMessage } from '../../../shared/native-chat-types'
+import { trimAgentSessionContext } from '../../../shared/agent-session/requests/agent-session-context-budget'
+import { isTextBlock, type NativeChatMessage } from '../../../shared/native-chat/native-chat-types'
 const MAX_FORK_CONTEXT_CHARS = 36_000
 const MAX_FORK_CAPTURE_SANITIZE_CHARS = MAX_FORK_CONTEXT_CHARS * 4
 const ESCAPE_CODE = 27

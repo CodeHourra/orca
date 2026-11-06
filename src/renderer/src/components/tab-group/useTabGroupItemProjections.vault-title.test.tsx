@@ -1,9 +1,10 @@
 // @vitest-environment happy-dom
 
 import { renderHook } from '@testing-library/react'
+import { ConfirmationDialogProvider } from '@/components/confirmation-dialog'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Tab } from '../../../../shared/tab-types'
-import type { TerminalTab } from '../../../../shared/terminal-tab-types'
+import type { TerminalTab } from '../../../../shared/workspace-layout/terminal-tab-types'
 import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
 import { useAppStore } from '../../store'
 import { useTabGroupWorkspaceModel } from './useTabGroupWorkspaceModel'
@@ -67,8 +68,11 @@ function seedStores(): void {
 }
 
 function stripTitle(): string {
-  const { result } = renderHook(() =>
-    useTabGroupWorkspaceModel({ groupId: 'g-1', worktreeId: WORKTREE_ID })
+  const { result } = renderHook(
+    () => useTabGroupWorkspaceModel({ groupId: 'g-1', worktreeId: WORKTREE_ID }),
+    {
+      wrapper: ({ children }) => <ConfirmationDialogProvider>{children}</ConfirmationDialogProvider>
+    }
   )
   const derived = result.current.terminalTabs[0] as unknown as TerminalTab
   return resolveTerminalTabTitle(derived, true, derived.title, {

@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom'
 import NativeChatView from '../native-chat/NativeChatView'
-import { makePaneKey } from '../../../../shared/stable-pane-id'
-import { isTuiAgent } from '../../../../shared/tui-agent-config'
+import { makePaneKey } from '../../../../shared/workspace-layout/stable-pane-id'
+import { isTuiAgent } from '../../../../shared/agent-launch/catalog/tui-agent-config'
 import { canContinueAgentSessionInNewSession } from './terminal-agent-session-continuation'
 import type { TerminalPaneController } from './use-terminal-pane-controller'
 import { useAppStore } from '@/store'
@@ -27,6 +27,7 @@ export function TerminalPaneNativeChatPortal({
     isRendererVisible,
     managedPanes,
     paneTitles,
+    readNativeChatTerminalDraft,
     readNativeChatTerminalScreen,
     resolveAgentForLeaf,
     switchNativeChatToTerminal,
@@ -53,8 +54,7 @@ export function TerminalPaneNativeChatPortal({
     onSplitRight: () => contextMenu.runForPane(chatPane.id, contextMenu.onSplitRight),
     onSplitDown: () => contextMenu.runForPane(chatPane.id, contextMenu.onSplitDown),
     canEqualizePaneSizes: managedPanes.length > 1 && expandedPaneId === null,
-    onEqualizePaneSizes: () =>
-      contextMenu.runForPane(chatPane.id, contextMenu.onEqualizePaneSizes),
+    onEqualizePaneSizes: () => contextMenu.runForPane(chatPane.id, contextMenu.onEqualizePaneSizes),
     canExpandPane: managedPanes.length > 1,
     isPaneExpanded: expandedPaneId === chatPane.id,
     onToggleExpand: () => contextMenu.runForPane(chatPane.id, contextMenu.onToggleExpand),
@@ -63,8 +63,6 @@ export function TerminalPaneNativeChatPortal({
     ),
     onContinueAgentSessionInNewSession: () =>
       contextMenu.runForPane(chatPane.id, contextMenu.onContinueAgentSessionInNewSession),
-    onForkAgentSession: () =>
-      void contextMenu.runForPane(chatPane.id, contextMenu.onForkAgentSession),
     onCopyAgentSessionContext: () =>
       void contextMenu.runForPane(chatPane.id, contextMenu.onCopyAgentSessionContext),
     onSetTitle: () => contextMenu.runForPane(chatPane.id, contextMenu.onSetTitle),
@@ -92,6 +90,7 @@ export function TerminalPaneNativeChatPortal({
         ownsTabWideLaunchDraft={chatPaneOwnsTabWideLaunchDraft}
         onSwitchToTerminal={switchNativeChatToTerminal}
         readTerminalScreen={readNativeChatTerminalScreen}
+        readTerminalDraft={readNativeChatTerminalDraft}
         contextMenuActions={contextMenuActions}
       />
     </NativeChatPaneCover>,

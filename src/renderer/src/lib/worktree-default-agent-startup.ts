@@ -1,17 +1,20 @@
 import { readDetectedAgentsForWorktree } from '@/lib/agent-detection-target-inventory'
 import { resolveAgentLaunchExecutionContext } from '@/lib/launch-agent-execution-context'
-import { buildAgentStartupPlan } from '@/lib/tui-agent-startup'
+import { buildAgentStartupPlan } from '../../../shared/agent-launch/startup/tui-agent-startup'
 import { tuiAgentToAgentKind } from '@/lib/telemetry'
-import { isTuiAgentEnabled, pickTuiAgent } from '../../../shared/tui-agent-selection'
+import {
+  isTuiAgentEnabled,
+  pickTuiAgent
+} from '../../../shared/agent-launch/catalog/tui-agent-selection'
 import {
   resolveTuiAgentLaunchArgs,
   resolveTuiAgentLaunchEnv
-} from '../../../shared/tui-agent-launch-defaults'
+} from '../../../shared/agent-launch/choices/tui-agent-launch-defaults'
 import { useAppStore } from '@/store'
 import type { GlobalSettings } from '../../../shared/global-settings-types'
-import type { AgentStartupShell } from '../../../shared/tui-agent-startup-shell'
+import type { AgentStartupShell } from '../../../shared/agent-launch/startup/tui-agent-startup-shell'
 import type { LaunchSource } from '../../../shared/telemetry-events'
-import type { TuiAgent } from '../../../shared/tui-agent'
+import type { TuiAgent } from '../../../shared/agent-launch/catalog/tui-agent'
 import type { WorktreeStartupPayload } from '@/lib/worktree-startup-payload'
 
 export function resolveEmptyWorktreeDefaultAgent(args: {

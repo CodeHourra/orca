@@ -1,6 +1,7 @@
 import type { ActivePluginCommand } from '@/store/plugin-panels'
 import {
   getEffectiveKeybindingsForDefinition,
+  keybindingMatchesAction,
   keybindingMatchesInput,
   type KeybindingDefinition,
   type KeybindingMatchOptions,
@@ -9,13 +10,15 @@ import {
   type PluginKeybindingActionId
 } from '../../../shared/keybindings'
 import { fileSearchClaimsTextKey } from './file-search-shortcut-policy'
+import { NATIVE_CHAT_ROOT_SELECTOR } from './native-chat-paste-request'
 import {
   isFloatingWorkspacePanelFocused,
   isFloatingWorkspaceTerminalInputTarget,
   matchFloatingWorkspacePanelChord
 } from './floating-workspace-terminal-actions'
 import { translate } from '@/i18n/i18n'
-import { pluginCommandKeybindingActionId as sharedPluginCommandKeybindingActionId } from '../../../shared/plugins/plugin-command-actions'
+import { pluginCommandKeybindingActionId as sharedPluginCommandKeybindingActionId } from '../../../shared/plugins/contributions/plugin-command-actions'
+import { isWorkspaceScopedPluginContext } from '../../../shared/plugins/contributions/plugin-command-contribution'
 
 export function pluginCommandKeybindingActionId(
   command: Pick<ActivePluginCommand, 'pluginKey' | 'id'>
@@ -68,7 +71,7 @@ export function findPluginCommandForKeybinding(
   hasActiveWorktree: boolean
 ): ActivePluginCommand | null {
   for (const command of commands) {
-    if (command.context === 'worktree' && !hasActiveWorktree) {
+    if (isWorkspaceScopedPluginContext(command.context) && !hasActiveWorktree) {
       continue
     }
     const matches = getEffectivePluginCommandKeybindings(command, platform, overrides).some(
@@ -87,8 +90,14 @@ export function globalShortcutTargetYields(
   overrides: KeybindingOverrides | undefined,
   options: KeybindingMatchOptions
 ): boolean {
+  // The default rename chord has no text-editing meaning, and a chat's composer is that tab's own input.
+  const chatTabRename =
+    input.target instanceof Element &&
+    input.target.closest(NATIVE_CHAT_ROOT_SELECTOR) !== null &&
+    keybindingMatchesAction('tab.rename', input, platform, overrides, options) &&
+    keybindingMatchesAction('tab.rename', input, platform, undefined, options)
   return (
-    fileSearchClaimsTextKey(input) ||
+    (fileSearchClaimsTextKey(input) && !chatTabRename) ||
     isFloatingWorkspaceTerminalInputTarget(input.target) ||
     (isFloatingWorkspacePanelFocused() &&
       matchFloatingWorkspacePanelChord(input, platform, null, overrides, options) !== null)
