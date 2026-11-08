@@ -1,22 +1,24 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { findActivityTerminalPortal } from './activity/activity-terminal-portal'
 import { shouldAutoCreateInitialTerminal } from './terminal/initial-terminal'
-import { findPendingWorktreeCreationId } from '@/lib/pending-worktree-creation'
+import { findPendingWorktreeCreationId } from '@/lib/workspace/creation/pending-worktree-creation'
 import {
   canWatcherCoverParkedTerminalTab,
+  syncParkedTerminalTabWatchersForWorkspaces,
+  type ParkedTerminalTabWatcherSyncEntry
+} from './terminal-pane/parking/output-watchers/terminal-parked-tab-watchers'
+import {
   disposeAllParkedTerminalWatchers,
   pruneParkedTerminalWatchers,
-  syncParkedTerminalTabWatchersForWorkspaces,
-  terminalWatcherLiveWorkspaceIds,
-  type ParkedTerminalTabWatcherSyncEntry
-} from './terminal-pane/terminal-parked-tab-watchers'
+  terminalWatcherLiveWorkspaceIds
+} from './terminal-pane/parking/output-watchers/terminal-parked-watcher-registry'
+
 import { useAppStore } from '@/store'
 import { isTerminalWorkspaceEmptiedOnPurpose } from '../../../shared/workspace-layout/closed-terminal-tab-tombstones'
-import { gateWorktreeAgentActivation } from '@/lib/worktree-agent-activation-gate'
-import { ensureWorktreeHasInitialTerminal } from '@/lib/worktree-initial-terminal-seeding'
+import { gateWorktreeAgentActivation } from '@/lib/workspace/activation/worktree-agent-activation-gate'
 import { createWorkspaceTerminalHostAuthoritySelector } from '@/lib/workspace-terminal-host-authority'
 import { hasStructuredAgentLaunchInWorktree } from '@/lib/agent-session/launch/structured-agent-session-launch-status'
-import { isEmptyWorkspaceDefaultSurfacePending } from '@/lib/empty-workspace-default-surface-claims'
+import { isEmptyWorkspaceDefaultSurfacePending } from '@/lib/workspace/activation/initial-surface/empty-workspace-default-surface-claims'
 import type { TerminalColdActivationController } from './terminal-cold-activation'
 import { selectParkedEquivalentMountTabIds } from './terminal/startup-terminal-tab-hold'
 import { ORCA_LAYOUT_OWNER_IS_MAIN } from '../../../shared/layout-owner-switch'
@@ -255,9 +257,6 @@ export function useTerminalWatcherEffects(controller: TerminalWatcherController)
         activeWorktreeId
       )
       if (shouldAutoCreateInitialTerminal(renderableTabCount, activeWorktreeHasTerminalState)) {
-        // Switch point: main decides whether the workspace gets its first tab. A layout-owner
-        // build creates the tab in main, which cannot seed an agent startup, so only the
-        // window-owned path below follows Settings → Agents.
         if (
           ORCA_LAYOUT_OWNER_IS_MAIN &&
           createInitialTerminalThroughLayoutOwner(useAppStore.getState, activeWorktreeId, () =>
@@ -266,8 +265,8 @@ export function useTerminalWatcherEffects(controller: TerminalWatcherController)
         ) {
           return
         }
-        // Why: reuse activation seeding so an empty worktree starts the configured default agent.
-        ensureWorktreeHasInitialTerminal(useAppStore.getState(), activeWorktreeId)
+        // Initial default tabs must not count as user activity and reorder the sidebar; explicit New Tab still does.
+        createTab(activeWorktreeId, undefined, undefined, { pendingActivationSpawn: true })
       }
     })
     return () => {

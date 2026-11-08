@@ -1,4 +1,4 @@
-import { useStructuredChatTabNames } from '@/runtime/structured-chat-name-observation'
+import { useStructuredChatTabNames } from '@/runtime/native-chat/naming/structured-chat-name-observation'
 import { useMemo, useState } from 'react'
 import type { GitFileStatus } from '../../../../shared/git/status/git-status-types'
 import type { Tab } from '../../../../shared/tab-types'
@@ -11,7 +11,6 @@ import {
   type TabBarItem
 } from './tab-bar-item-model'
 import type { DropIndicator } from './drop-indicator'
-import type { TabTitleAgentContextByTabId } from './tab-title-agent-context'
 import { sameStringArray } from '@/runtime/web-session-tabs-sync/state-equality-core'
 
 export type TabBarItemProjection = {
@@ -28,8 +27,7 @@ export function useTabBarItemProjection({
   unifiedTabs,
   unifiedTabByVisibleId,
   generatedTabTitlesEnabled,
-  statusByRelativePath,
-  titleAgentContextByTabId
+  statusByRelativePath
 }: {
   props: TabBarProps
   resolvedGroupId: string
@@ -37,7 +35,6 @@ export function useTabBarItemProjection({
   unifiedTabByVisibleId: Map<string, Tab>
   generatedTabTitlesEnabled: boolean
   statusByRelativePath: Map<string, GitFileStatus>
-  titleAgentContextByTabId: TabTitleAgentContextByTabId
 }): TabBarItemProjection {
   const {
     tabs,
@@ -150,17 +147,9 @@ export function useTabBarItemProjection({
         generatedTabTitlesEnabled,
         expandedPaneByTabId,
         statusByRelativePath,
-        chatNames,
-        titleAgentContextByTabId
+        chatNames
       ),
-    [
-      expandedPaneByTabId,
-      generatedTabTitlesEnabled,
-      orderedItems,
-      statusByRelativePath,
-      chatNames,
-      titleAgentContextByTabId
-    ]
+    [expandedPaneByTabId, generatedTabTitlesEnabled, orderedItems, statusByRelativePath, chatNames]
   )
 
   return {

@@ -1,11 +1,8 @@
 import { memo } from 'react'
-import { useAppStore } from '@/store'
 import { useTranslation } from 'react-i18next'
 import { shallow } from 'zustand/shallow'
 import type { GitFileStatus } from '../../../../shared/git/status/git-status-types'
-import type { TabTitleAgentContext } from '../../../../shared/tab-title-resolution'
-import { resolveTerminalTabTitle } from '../../../../shared/tab-title-resolution'
-import type { OpenFile } from '../../store/slices/editor'
+import type { OpenFile } from '../../store/slices/editor/types/open-file'
 import SortableTab from './SortableTab'
 import TerminalSortableTab from './TerminalSortableTab'
 import EditorFileTab from './EditorFileTab'
@@ -17,10 +14,10 @@ import type { TabBarItemActions } from './use-tab-bar-item-actions'
 import {
   useStructuredChatTabConversationName,
   useStructuredChatTabNamingFailure
-} from '@/runtime/structured-conversation-name'
+} from '@/runtime/native-chat/naming/structured-conversation-name'
 import { agentTypeToIconAgent } from '../../../../shared/agent-status/presentation/agent-type-icon-agent'
 import { formatSimulatorTabLabel } from '@/lib/simulator-tab-label'
-import { useAiVaultSessionNameSync } from './use-ai-vault-session-name-sync'
+import { useTranslate } from '@/i18n/use-translate'
 
 // Why only values and `actions`: anything a tab draws must be a compared prop, or a skipped render shows it stale.
 type TabBarItemRowProps = {
@@ -44,8 +41,6 @@ type TabBarItemRowProps = {
   canCloseSplitPane: boolean
   /** This editor tab's own status, so a git status write re-renders only the tabs it changed. */
   gitStatus: GitFileStatus | null
-  /** The agent hosting this terminal tab, so its title mirrors the agent row. */
-  titleAgentContext: TabTitleAgentContext | undefined
 }
 
 function TabBarItemRow({
@@ -66,12 +61,11 @@ function TabBarItemRow({
   viewModeTabId,
   canDuplicate,
   canCloseSplitPane,
-  gitStatus,
-  titleAgentContext
+  gitStatus
 }: TabBarItemRowProps): React.JSX.Element {
+  const t = useTranslate()
   // Why: the tabs' labels come from `translate()`, which a skipped render would leave in the old language.
   useTranslation()
-  const onSyncSessionName = useAiVaultSessionNameSync(item)
   const conversationName = useStructuredChatTabConversationName(
     item.type === 'agent-session' ? item.data : undefined
   )
@@ -85,12 +79,7 @@ function TabBarItemRow({
     unifiedTabId: item.unifiedTabId,
     visibleTabId: item.id,
     tabType: item.type,
-    label: getTabDragLabel(
-      item,
-      generatedTabTitlesEnabled,
-      useAppStore.getState(),
-      titleAgentContext
-    ),
+    label: getTabDragLabel(item, generatedTabTitlesEnabled, conversationName, t),
     iconPath: item.type === 'editor' ? item.data.filePath : undefined,
     color: item.type === 'terminal' ? (item.data.color ?? null) : null
   }
@@ -122,13 +111,6 @@ function TabBarItemRow({
       <TerminalSortableTab
         {...sortableTabProps}
         tab={resolveTerminalItemTab(item.data, generatedTabTitlesEnabled)}
-        displayTitle={resolveTerminalTabTitle(
-          item.data,
-          generatedTabTitlesEnabled,
-          item.data.title,
-          titleAgentContext
-        )}
-        onSyncSessionName={onSyncSessionName}
         canToggleViewMode={canToggleViewMode}
         isChatView={isChatView}
         onToggleViewMode={viewModeTabId ? () => actions.toggleViewMode(viewModeTabId) : undefined}
@@ -152,7 +134,6 @@ function TabBarItemRow({
         }}
         // Why: a chat records its provider, so its title or turn state must never re-identify it.
         agent={agentTypeToIconAgent(nativeChat.agent)}
-        displayTitle={conversationName ?? item.data.label}
         isExpanded={false}
         onActivate={actions.activateAgentSession}
         onToggleExpand={() => {}}
@@ -191,7 +172,7 @@ function TabBarItemRow({
     onCloseAll: actions.closeAllFiles
   }
   if (item.type === 'simulator') {
-    const simulatorLabel = formatSimulatorTabLabel(item.data.label)
+    const simulatorLabel = formatSimulatorTabLabel(item.data.label, t)
     const simulatorFile: OpenFile & { tabId: string } = {
       id: item.id,
       tabId: item.id,

@@ -11,8 +11,8 @@ import { useAgentDetectionTargetForWorktree } from '@/hooks/useAgentDetectionTar
 import { getConnectionIdFromState } from '@/lib/connection-context'
 import { getLocalProjectExecutionRuntimeContext } from '@/lib/local-preflight-context'
 import { isNativeChatTranscriptLocalReadable } from '../../../../shared/native-chat/transcript/native-chat-transcript-readability'
-import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/worktree-runtime-owner'
-import { runtimeTargetForOwnerEnvironment } from '@/runtime/runtime-client-target'
+import { runtimeEnvironmentIdOrLocalUnlessTwin } from '@/lib/workspace/ownership/worktree-runtime-owner'
+import { runtimeTargetForOwnerEnvironment } from '@/runtime/rpc/targets/runtime-client-target'
 import { useOptionalShortcutLabel, useShortcutLabel } from '@/hooks/useShortcutLabel'
 import {
   getWindowsTerminalCapabilityOwnerKey,
@@ -24,14 +24,10 @@ import {
   selectTabBarAgentProjections,
   type TabBarAgentProjections
 } from './tab-agent-types-by-tab-id'
-import {
-  selectTabBarTitleAgentContext,
-  type TabTitleAgentContextByTabId
-} from './tab-title-agent-context'
 import { shouldShowWindowsShellMenu } from './windows-shell-menu-visibility'
 import { createUnifiedTabLookup } from './tab-bar-item-model'
 import { getClientCreationActionPolicy } from '@/lib/client-creation-action-policy'
-import { selectWorktreesByRepo } from '@/store/workspace-record-selectors'
+import { selectWorktreesByRepo } from '@/store/workspaces/catalog/workspace-record-fields'
 
 const isWindows = navigator.userAgent.includes('Windows')
 export const isMacOs = navigator.userAgent.includes('Mac')
@@ -87,7 +83,6 @@ export type TabBarRuntimeModel = {
   nativeChatTranscriptIsLocalReadable: boolean
   managedBrowserCreationEnabled: boolean
   mobileEmulatorCreationEnabled: boolean
-  tabTitleAgentContextByTabId: TabTitleAgentContextByTabId
 } & TabBarAgentProjections
 
 export function useTabBarRuntimeModel({
@@ -244,9 +239,6 @@ export function useTabBarRuntimeModel({
     isNativeChatTranscriptLocalReadable(getConnectionIdFromState(s, worktreeId))
   )
 
-  // Why: same hot maps as the agent projection; the shared selector keeps per-tab identity stable across status churn.
-  const tabTitleAgentContextByTabId = useAppStore(useShallow(selectTabBarTitleAgentContext))
-
   return {
     newTerminalShortcut,
     newBrowserShortcut,
@@ -271,7 +263,6 @@ export function useTabBarRuntimeModel({
     workspaceHasSimulatorTab,
     toggleTabViewMode,
     tabAgentTypesByTabId,
-    tabTitleAgentContextByTabId,
     nativeChatTabWideFallbackUnsafeTabsById,
     nativeChatTranscriptIsLocalReadable,
     managedBrowserCreationEnabled,

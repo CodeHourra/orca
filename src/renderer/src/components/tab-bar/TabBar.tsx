@@ -11,8 +11,10 @@ import { renderTabBarSurface } from './tab-bar-surface'
 import { useTabBarItemActions } from './use-tab-bar-item-actions'
 import { useActiveClientHostedBrowserRowId } from '@/lib/pane-manager/client-hosted-browser-row-state'
 import { useEditorGroupFileDropOwner } from '../editor/use-editor-group-file-drop-owner'
+import { useTranslate } from '@/i18n/use-translate'
 
 function TabBarInner(props: TabBarProps): React.JSX.Element {
+  const t = useTranslate()
   const {
     worktreeId,
     groupId,
@@ -64,8 +66,7 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
     unifiedTabs: runtime.unifiedTabs,
     unifiedTabByVisibleId: runtime.unifiedTabByVisibleId,
     generatedTabTitlesEnabled: runtime.generatedTabTitlesEnabled,
-    statusByRelativePath: runtime.statusByRelativePath,
-    titleAgentContextByTabId: runtime.tabTitleAgentContextByTabId
+    statusByRelativePath: runtime.statusByRelativePath
   })
   const togglePinned = (item: TabBarItem): void => {
     // pinTab/unpinTab mirror the change to the host for remote-server tabs.
@@ -113,17 +114,20 @@ function TabBarInner(props: TabBarProps): React.JSX.Element {
     end: tabStripNavigation.tabStripOverflowState.canScrollEnd
   })
 
-  return renderTabBarSurface({
-    props,
-    runtime,
-    createMenu,
-    itemProjection,
-    tabStripNavigation,
-    tabStripDragScroll,
-    activeClientHostedBrowserRowId,
-    itemActions,
-    surfaceRef
-  })
+  return renderTabBarSurface(
+    {
+      props,
+      runtime,
+      createMenu,
+      itemProjection,
+      tabStripNavigation,
+      tabStripDragScroll,
+      activeClientHostedBrowserRowId,
+      itemActions,
+      surfaceRef
+    },
+    t
+  )
 }
 
 export default React.memo(TabBarInner)

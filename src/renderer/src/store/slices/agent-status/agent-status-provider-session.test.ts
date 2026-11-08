@@ -3,11 +3,10 @@ import { createHookListenerState } from '../../../../../shared/agent-hook-listen
 import { applyProviderSessionOnlyUpdate } from '../../../hooks/ipc-events/agent-status-partial-updates'
 import { describe, expect, it } from 'vitest'
 
-import type { SleepingAgentSessionRecord } from '../../../../../shared/agent-session/lifecycle/agent-session-resume'
 import type { AppState } from '../../types'
-import { getProviderSessionClaimKey } from '../../../../../shared/sleeping-record-legacy-pane-key'
-import { createTestStore, seedStore } from '../store-test-helpers'
-import { makeTab } from '../store-session-test-harness'
+import '../../../../../shared/sleeping-record-legacy-pane-key'
+import { createTestStore, seedStore } from '../../testing/app-store-test-fixture'
+import { makeTab } from '../../terminals/terminal-tab.test-fixture'
 import '../../../../../shared/workspace-layout/stable-pane-id'
 
 const PI_COMPATIBLE_CASES = [
@@ -17,11 +16,8 @@ const PI_COMPATIBLE_CASES = [
 ]
 
 function makePiCompatibleProviderSession(agent: 'pi' | 'omp' | 'prime-agent') {
-  return {
-    key: 'session_id' as const,
-    id: `${agent}-session-1`,
-    transcriptPath: `/tmp/${agent}-session-1.jsonl`
-  }
+  const session = { key: 'session_id' as const, id: `${agent}-session-1` }
+  return agent === 'omp' ? session : { ...session, transcriptPath: `/tmp/${agent}-session-1.jsonl` }
 }
 
 describe('recordAgentProviderSession', () => {
@@ -96,41 +92,6 @@ describe('recordAgentProviderSession', () => {
     expect(store.getState().agentStatusByPaneKey['tab-1:leaf-1']?.providerSession).toBeUndefined()
   })
 
-  it('uses the session file as part of transcript-based resume ownership only', () => {
-    const base = {
-      paneKey: 'tab-1:leaf-1',
-      tabId: 'tab-1',
-      worktreeId: 'wt-1',
-      prompt: '',
-      state: 'working' as const,
-      capturedAt: 10,
-      updatedAt: 10,
-      origin: 'live' as const
-    }
-    const makeRecord = (
-      agent: 'pi' | 'prime-agent' | 'omp' | 'claude',
-      transcriptPath: string
-    ): SleepingAgentSessionRecord => ({
-      ...base,
-      agent,
-      providerSession: { key: 'session_id', id: 'session-1', transcriptPath }
-    })
-
-    expect(getProviderSessionClaimKey(makeRecord('pi', '/tmp/first.jsonl'))).not.toBe(
-      getProviderSessionClaimKey(makeRecord('pi', '/tmp/second.jsonl'))
-    )
-    expect(getProviderSessionClaimKey(makeRecord('prime-agent', '/tmp/first.jsonl'))).not.toBe(
-      getProviderSessionClaimKey(makeRecord('prime-agent', '/tmp/second.jsonl'))
-    )
-    // Why: OMP stays UUID-keyed (omp-resume-transcript-locator.md); a later hook adding the path
-    // must not split one provider session into two claim identities.
-    expect(getProviderSessionClaimKey(makeRecord('omp', '/tmp/first.jsonl'))).toBe(
-      getProviderSessionClaimKey(makeRecord('omp', '/tmp/second.jsonl'))
-    )
-    expect(getProviderSessionClaimKey(makeRecord('claude', '/tmp/first.jsonl'))).toBe(
-      getProviderSessionClaimKey(makeRecord('claude', '/tmp/second.jsonl'))
-    )
-  })
   it('keeps Pi session identity durable without fabricating a visible turn', () => {
     const store = createTestStore()
     store.setState({

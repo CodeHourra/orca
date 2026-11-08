@@ -178,8 +178,7 @@ function Strip({
     nativeChatTabWideFallbackUnsafeTabsById: {},
     nativeChatTranscriptIsLocalReadable: false,
     managedBrowserCreationEnabled,
-    statusByRelativePath,
-    tabTitleAgentContextByTabId: {}
+    statusByRelativePath
   }
   const actions = useTabBarItemActions({
     props: {

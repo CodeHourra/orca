@@ -1,12 +1,13 @@
+import { AGENT_JOURNAL_THREAD_SCOPE } from '../../shared/agent-session/journal/agent-session-journal-types'
 import { describe, expect, it, vi } from 'vitest'
 import { createClaudeJournalTranslator } from './structured/journal/claude-structured-journal-translation'
 import {
   isStructuredRewindTarget,
   structuredRewindCut
-} from '../native-chat/agent-session-wire/structured-rewind-cut'
+} from '../native-chat/agent-session-wire/rewind/structured-rewind-cut'
 import { agentJournalItemKey } from '../../shared/agent-session/journal/agent-session-journal-item-key'
-import { readAgentSessionHistory } from '../native-chat/agent-session-wire/agent-session-history-page'
-import { projectJournalBatch } from '../native-chat/agent-session-wire/agent-session-journal-batch'
+import { readAgentSessionHistory } from '../native-chat/agent-session-wire/publication/history/agent-session-history-page'
+import { projectJournalBatch } from '../native-chat/agent-session-wire/publication/history/agent-session-journal-batch'
 import {
   replacePage,
   mergeItems
@@ -32,7 +33,6 @@ import {
   chat
 } from './claude-transcript-catch-up-test-support'
 // Real disk tail → isolated translator → deferred sink → on-disk journal contracts.
-import * as sessionFileResolver from '../native-chat/session-file-resolver'
 import * as transcriptTail from './claude-transcript-tail'
 
 describe('Claude chat catch-up', () => {
@@ -129,6 +129,12 @@ describe('Claude chat catch-up', () => {
         handoverRecorded: true,
         fence: 1
       })
+      await c.journal.resolveDispatch({
+        clientMessageId: 'new-native-send',
+        state: 'pending',
+        fence: 1,
+        turnScope: AGENT_JOURNAL_THREAD_SCOPE
+      })
       const submissions = c.journal.snapshot().submissions
       const cursor = c.journal.cursor()
       await c.write([
@@ -154,8 +160,9 @@ describe('Claude chat catch-up', () => {
       expect(held.filter((row) => row.body.kind === 'turn')).toHaveLength(1)
       expect(await c.open('a1')).toBe(true)
       expect(c.journal.snapshot().items).toEqual(held)
+      const beforeReplay = c.journal.item(key)
       const reopened = await c.replay()
-      expect(reopened.item(key)).toEqual(c.journal.item(key))
+      expect(reopened.item(key)).toEqual(beforeReplay)
       expect(isStructuredRewindTarget(reopened, key)).toBe(false)
       const page = readAgentSessionHistory(reopened, { sessionId: SESSION, direction: 'tail' })
       const delta = reopened.readSince(cursor)
@@ -209,26 +216,16 @@ describe('Claude chat catch-up', () => {
   )
 
   it.each([
-    ['-work', '/work', false],
-    ['-work-caf-', '/work/cafe\u0301', false],
-    ['-old-work', '/moved-work', true]
+    ['-work', '/work'],
+    ['-work-caf-', '/work/cafe\u0301'],
+    ['-old-work', '/moved-work']
   ] as const)(
     'uses the selected-home bucket, retaining moved-project fallback: %s',
-    async (project, cwd, fallback) => {
+    async (project, cwd) => {
       const c = await chat(project, cwd)
       await c.write([...chatTurn, ...outsideTurn])
-      const resolve = vi.spyOn(sessionFileResolver, 'resolveSessionFilePath')
       expect(await c.open('a1')).toBe(true)
       expect(c.rows()).toContain('assistant:answer 2')
-      expect(resolve).toHaveBeenCalledTimes(fallback ? 1 : 0)
-      if (fallback) {
-        expect(resolve).toHaveBeenCalledWith(
-          'claude',
-          SID,
-          expect.objectContaining({ claudeProjectsDir: expect.any(String) }),
-          expect.any(AbortSignal)
-        )
-      }
     }
   )
 

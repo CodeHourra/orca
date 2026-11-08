@@ -1,10 +1,7 @@
 import type { editor } from 'monaco-editor'
+import { formatShortcutLabel } from '@/hooks/useShortcutLabel'
 import { monaco } from '@/lib/monaco-setup'
-import {
-  attachContextualCopyHintPointerDown,
-  createContextualCopyHintNode,
-  refreshContextualCopyHintLabel
-} from './contextual-copy-hint-widget'
+import { useAppStore } from '@/store'
 import { editorShortcutMatches } from './editor-shortcuts'
 import {
   canCopySelectionWithContext,
@@ -16,6 +13,7 @@ import {
   isPrimarySelectionEnabled,
   setPrimarySelectionText
 } from '@/lib/primary-selection'
+import { translate } from '@/i18n/i18n'
 
 export function setupContextualCopy({
   editorInstance,
@@ -38,7 +36,20 @@ export function setupContextualCopy({
   let primarySelectionTimer: number | null = null
   let copyHintWidgetPosition: editor.IContentWidgetPosition | null = null
   let lastCopiedSelectionKey: string | null = null
-  const copyHintNode = createContextualCopyHintNode()
+  const copyHintNode = document.createElement('div')
+  copyHintNode.className =
+    'pointer-events-none rounded-md border border-border/90 bg-background px-2.5 py-1 text-xs font-medium text-foreground shadow-[0_6px_18px_rgba(15,23,42,0.18)] backdrop-blur whitespace-nowrap'
+  const updateCopyHintLabel = (): void => {
+    copyHintNode.textContent = translate(
+      'auto.components.editor.contextualCopy.copyContextHint',
+      'Copy context {{shortcut}}',
+      {
+        shortcut: formatShortcutLabel('editor.copyContext', useAppStore.getState().keybindings)
+      }
+    )
+  }
+  updateCopyHintLabel()
+  copyHintNode.style.display = 'none'
   const copyHintWidget: editor.IContentWidget = {
     allowEditorOverflow: true,
     suppressMouseDown: true,
@@ -83,7 +94,7 @@ export function setupContextualCopy({
   }
 
   const updateCopyHint = (): void => {
-    refreshContextualCopyHintLabel(copyHintNode)
+    updateCopyHintLabel()
     const model = editorInstance.getModel()
     const selection = editorInstance.getSelection()
     // Why: hint ticks need selection bounds; extracting the selected text scales with file size.
@@ -94,7 +105,6 @@ export function setupContextualCopy({
       return
     }
 
-    // Why: an already-copied selection must not re-extract its text on every tick.
     if (lastCopiedSelectionKey !== null && lastCopiedSelectionKey === getSelectionKey()) {
       copyHintNode.style.display = 'none'
       copyHintWidgetPosition = null
@@ -255,10 +265,6 @@ export function setupContextualCopy({
     return true
   }
 
-  const detachCopyHintPointerDown = attachContextualCopyHintPointerDown(copyHintNode, () => {
-    void copySelectionWithContext()
-  })
-
   const selectionListener = editorInstance.onDidChangeCursorSelection((event) => {
     if (event.source !== 'restoreState') {
       schedulePrimarySelectionBufferUpdate()
@@ -313,7 +319,6 @@ export function setupContextualCopy({
     editorDomNode.removeEventListener('keydown', handleKeyDown, true)
     editorDomNode.removeEventListener('mouseup', refreshCopyHintAndPolling, true)
     editorDomNode.removeEventListener('keyup', refreshCopyHintAndPolling, true)
-    detachCopyHintPointerDown()
     stopCopyHintPolling()
     editorInstance.removeContentWidget(copyHintWidget)
   })

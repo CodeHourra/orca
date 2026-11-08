@@ -36,7 +36,9 @@ vi.mock('../runtime/rpc/server/runtime-rpc', () => ({
     setMobileDesktopRelayHosts = vi.fn()
   }
 }))
-vi.mock('../runtime/headless-runtime-graph', () => ({ publishHeadlessRuntimeGraph: vi.fn() }))
+vi.mock('../runtime/session-graph/headless-runtime-graph', () => ({
+  publishHeadlessRuntimeGraph: vi.fn()
+}))
 vi.mock('./headless-serve-ssh-registration', () => ({
   registerHeadlessServeSshHandlers: vi.fn(() => {
     launchOrder.push('ssh-registered')
@@ -307,6 +309,8 @@ describe('desktop startup activation', () => {
       noPairing: true,
       mobilePairing: false,
       grantDesktopControl: false,
+      allowPublic: false,
+      refusePublic: false,
       recipeJson: false,
       projectRoot: null
     })
@@ -347,6 +351,8 @@ describe('desktop startup activation', () => {
         noPairing: true,
         mobilePairing: false,
         grantDesktopControl: false,
+        allowPublic: false,
+        refusePublic: false,
         recipeJson: false,
         projectRoot: null
       })
@@ -375,6 +381,8 @@ describe('desktop startup activation', () => {
       noPairing: true,
       mobilePairing: false,
       grantDesktopControl: false,
+      allowPublic: false,
+      refusePublic: false,
       recipeJson: false,
       projectRoot: null
     })
