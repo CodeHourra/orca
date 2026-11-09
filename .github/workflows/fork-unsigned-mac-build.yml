@@ -1,0 +1,50 @@
+name: Fork Unsigned macOS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or SHA in this repo to build'
+        required: false
+        default: 'fork'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-unsigned-mac-build-${{ inputs.ref }}
+  cancel-in-progress: false
+
+env:
+  ORCA_BACKGROUND_LAUNCH: '1'
+
+jobs:
+  build:
+    if: github.repository == 'CodeHourra/orca'
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build unsigned macOS package
+        run: pnpm build:mac:unsigned
+      - name: Verify packaged orcad template
+        run: |
+          node -e "require('./config/scripts/orcad-distribution/template/verify-packaged-orcad-template.cjs').verifyPackagedOrcadTemplate(process.argv[1])" "$(find dist -path '*/AgentIDE.app/Contents/Resources' -type d | head -1)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agentide-unsigned-mac-arm64
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
